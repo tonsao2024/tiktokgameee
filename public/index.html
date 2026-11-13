@@ -3,34 +3,29 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>tiktokgameee — ขึ้นเวที LIVE</title>
+<title>tiktokgameee — เวทีคนเต้น</title>
 <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <!-- พื้นหลังเวที -->
+  <!-- พื้นหลังเวทีคอนเสิร์ต -->
   <div id="stage-bg"></div>
   <div id="bg-shade"></div>
-
-  <!-- แสงไฟจุดจุด -->
+  <div id="beams" aria-hidden="true">
+    <div class="beam b1"></div><div class="beam b2"></div><div class="beam b3"></div>
+    <div class="beam b4"></div><div class="beam b5"></div>
+  </div>
   <div id="sparkles" aria-hidden="true"></div>
 
-  <!-- ===== HUD ด้านบน ===== -->
-  <header id="topbar">
-    <div class="host-box">
-      <img class="host-avatar" id="host-avatar" alt="" />
-      <div class="host-meta">
-        <div class="host-name" id="host-name">nene ai</div>
-        <div class="host-sub" id="host-sub">♥ 927.7K</div>
-      </div>
-      <button class="follow-btn" id="follow-btn">+ Follow</button>
-    </div>
-    <div class="topbar-right">
-      <div class="viewer-pill" title="ผู้ชมในห้อง">
-        <span class="dot-live"></span><span id="viewer-count">0</span>
-      </div>
-      <div class="close-btn" title="ปิด">✕</div>
-    </div>
+  <!-- ป้ายเวที (แทนแถบหัวแบบ TikTok) -->
+  <header id="stage-sign">
+    <span class="live-dot"></span>
+    <span class="sign-host" id="sign-host">tiktokgameee</span>
+    <span class="sign-sep">◆</span>
+    <span class="sign-viewers" id="sign-viewers">👥 0</span>
   </header>
+
+  <!-- ป้ายสถานะการเชื่อมต่อ -->
+  <div id="mode-badge" class="hidden"></div>
 
   <!-- ===== คอลัมน์ซ้าย: อันดับ + แชท ===== -->
   <aside id="left-col">
@@ -62,7 +57,7 @@
     </section>
   </aside>
 
-  <!-- ===== เวที: ตัวละคร ===== -->
+  <!-- ===== เวที: ตัวละครเต้น ===== -->
   <main id="stage" aria-label="เวทีตัวละคร"></main>
 
   <!-- โต๊ะตอบการขึ้นเวที -->
@@ -71,30 +66,17 @@
   <!-- ===== แบนเนอร์เหตุการณ์ ===== -->
   <div id="event-banner"><span class="eb-icon" id="eb-icon">✨</span><span id="eb-text"></span></div>
 
-  <!-- ===== แถวล่าง: คนรอขึ้นเวที ===== -->
+  <!-- ===== แถวล่าง: คนรอขึ้นเวที + ช่องเข้าร่วม ===== -->
   <section id="queue-bar">
     <div class="queue-label">
       <span class="q-title">⏳ รอขึ้นเวที</span>
       <span class="q-count" id="queue-count">0</span>
     </div>
     <div class="queue-chips" id="queue-chips"></div>
-<div class="queue-hint" id="queue-hint">👋 พิมพ์คอมเมนต์แล้วกด Enter = เข้าเกมส์กับคนดู · คนใหม่อยู่ด้านล่างก่อน นาน ๆ จะขึ้นเวที</div>
-  </section>
-
-  <!-- ป้ายเตือนโหมด -->
-  <div id="mode-badge" class="hidden"></div>
-
-  <!-- ===== แถบ action สไตล์ TikTok ===== -->
-  <footer id="action-bar">
-    <div class="comment-box">
-      <input id="comment-input" type="text" placeholder="พิมพ์..." maxlength="120" autocomplete="off" />
+    <div class="queue-join">
+      <input id="join-input" type="text" placeholder="พิมพ์ชื่อแล้ว Enter = เข้าเต้น 💃" maxlength="40" autocomplete="off" />
     </div>
-    <button class="act-btn" id="emoji-btn" title="อิโมจิ">😊</button>
-    <button class="act-btn" id="pk-btn" title="PK">👥</button>
-    <button class="act-btn like-btn" id="like-btn" title="กดไลก์">❤️</button>
-    <button class="act-btn" id="gift-btn" title="ส่งของขวัญ">🎁</button>
-    <div class="share-pill" title="แชร์ LIVE"><span>📣</span><b id="share-count">5.4K</b></div>
-  </footer>
+  </section>
 
   <!-- ปุ่มเปิดแผงควบคุม -->
   <button id="admin-fab" title="แผงควบคุม">⚙️</button>

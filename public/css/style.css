@@ -1,11 +1,13 @@
-/* ===== tiktokgameee — เกมส์ขึ้นเวที LIVE ===== */
+/* ===== tiktokgameee — เวทีคอนเสิร์ตไทย: คนดูเข้ามาเต้นบนเวที ===== */
 
 :root {
-  --pink: #ff2e88;
-  --cyan: #25f4ee;
   --gold: #ffd45e;
-  --panel-bg: rgba(24, 8, 40, 0.62);
-  --panel-line: rgba(255, 255, 255, 0.16);
+  --gold-deep: #c9962c;
+  --pink: #ff2e88;
+  --magenta: #b3207a;
+  --cyan: #25f4ee;
+  --panel-bg: rgba(38, 10, 48, 0.66);
+  --panel-line: rgba(255, 212, 94, 0.35);
   --text: #ffffff;
   --text-dim: rgba(255, 255, 255, 0.72);
   --font: "Noto Sans Thai", "Sarabun", "Leelawadee UI", system-ui, -apple-system, sans-serif;
@@ -25,106 +27,121 @@ html, body {
 /* ---------- พื้นหลัง ---------- */
 #stage-bg {
   position: fixed; inset: 0;
-  background: url("/assets/bg-stage.jpg") center 65% / cover no-repeat;
-  filter: saturate(1.08);
+  background: url("/assets/bg-stage.jpg") center 58% / cover no-repeat;
+  filter: saturate(1.12) contrast(1.03);
   z-index: 0;
 }
 #bg-shade {
   position: fixed; inset: 0; z-index: 1; pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 88%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 55%),
-    linear-gradient(180deg, rgba(20,4,44,.78) 0%, rgba(20,4,44,.05) 22%, rgba(20,4,44,.05) 62%, rgba(12,2,28,.86) 100%);
+    radial-gradient(130% 85% at 50% 96%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 52%),
+    linear-gradient(180deg, rgba(18,4,34,.8) 0%, rgba(18,4,34,.05) 16%, rgba(18,4,34,.02) 55%, rgba(12,2,26,.82) 100%);
 }
-#sparkles { position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+
+/* ---------- แสงไฟปรากฏ ---------- */
+#beams { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.beam {
+  position: absolute; top: -12%; left: 50%;
+  width: 13vw; height: 78vh;
+  transform-origin: 50% 0;
+  filter: blur(5px);
+  mix-blend-mode: screen;
+  opacity: .55;
+  animation: beam-swing 11s ease-in-out infinite alternate;
+}
+.beam.b1 { background: linear-gradient(180deg, rgba(255,214,120,.34), rgba(255,214,120,0) 72%); margin-left: -34vw; animation-duration: 9s; }
+.beam.b2 { background: linear-gradient(180deg, rgba(255,80,170,.30), rgba(255,80,170,0) 72%); margin-left: -18vw; animation-duration: 12s; animation-delay: -3s; }
+.beam.b3 { background: linear-gradient(180deg, rgba(120,200,255,.30), rgba(120,200,255,0) 72%); margin-left: -2vw; animation-duration: 10s; animation-delay: -6s; }
+.beam.b4 { background: linear-gradient(180deg, rgba(160,255,190,.26), rgba(160,255,190,0) 72%); margin-left: 14vw; animation-duration: 13s; animation-delay: -1s; }
+.beam.b5 { background: linear-gradient(180deg, rgba(255,140,90,.28), rgba(255,140,90,0) 72%); margin-left: 30vw; animation-duration: 11s; animation-delay: -8s; }
+@keyframes beam-swing {
+  0%   { transform: rotate(-16deg) scaleY(1); }
+  100% { transform: rotate(16deg) scaleY(1.08); }
+}
+
+#sparkles { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
 .sparkle {
   position: absolute; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--gold); opacity: 0.85;
+  background: var(--gold); opacity: .85;
   box-shadow: 0 0 8px 2px rgba(255, 212, 94, .8);
   animation: sparkle-float linear infinite;
 }
 @keyframes sparkle-float {
   0%   { transform: translateY(0) scale(1); opacity: 0; }
-  10%  { opacity: .9; }
-  100% { transform: translateY(-46vh) scale(.3); opacity: 0; }
+  12%  { opacity: .9; }
+  100% { transform: translateY(-42vh) scale(.3); opacity: 0; }
 }
 
-/* ---------- แถบบน ---------- */
-#topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 66px; z-index: 30;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 14px;
-  background: linear-gradient(180deg, rgba(10,2,24,.72), rgba(10,2,24,0));
-}
-.host-box {
+/* ---------- ป้ายเวที (แทนแถบหัว TikTok) ---------- */
+#stage-sign {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 30;
   display: flex; align-items: center; gap: 10px;
-  background: var(--panel-bg); border: 1px solid var(--panel-line);
-  border-radius: 999px; padding: 5px 12px 5px 5px;
+  padding: 8px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(60,8,60,.85), rgba(20,4,40,.85));
+  border: 1px solid var(--panel-line);
+  box-shadow: 0 0 24px rgba(255, 212, 94, .25), inset 0 0 18px rgba(255, 212, 94, .12);
   backdrop-filter: blur(8px);
+  font-size: 15px; font-weight: 700;
+  white-space: nowrap;
 }
-.host-avatar {
-  width: 46px; height: 46px; border-radius: 50%;
-  border: 2px solid var(--pink); object-fit: cover;
-  background: #2a1140;
-}
-.host-meta { line-height: 1.15; }
-.host-name { font-weight: 700; font-size: 15px; }
-.host-sub { font-size: 12px; color: var(--text-dim); }
-.follow-btn {
-  border: 0; cursor: pointer;
-  background: linear-gradient(135deg, #ff2e88, #ff5f6d);
-  color: #fff; font-weight: 700; font-size: 13px;
-  padding: 7px 14px; border-radius: 999px;
-  box-shadow: 0 4px 14px rgba(255, 46, 136, .45);
-}
-.follow-btn.followed { background: rgba(255,255,255,.18); box-shadow: none; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-.viewer-pill {
-  display: flex; align-items: center; gap: 7px;
-  background: var(--panel-bg); border: 1px solid var(--panel-line);
-  border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 14px;
-  backdrop-filter: blur(8px);
-}
-.dot-live {
-  width: 8px; height: 8px; border-radius: 50%; background: #ff3b5c;
-  box-shadow: 0 0 0 0 rgba(255,59,92,.7); animation: pulse 1.6s infinite;
+#stage-sign .live-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ff3b5c; box-shadow: 0 0 12px #ff3b5c;
+  animation: pulse 1.6s infinite;
 }
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255,59,92,.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255,59,92,0); }
+  0% { box-shadow: 0 0 0 0 rgba(255,59,92,.75); }
+  70% { box-shadow: 0 0 0 12px rgba(255,59,92,0); }
   100% { box-shadow: 0 0 0 0 rgba(255,59,92,0); }
 }
-.close-btn {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer;
-  background: rgba(0,0,0,.45); border: 1px solid var(--panel-line);
+#stage-sign .sign-host { color: var(--gold); letter-spacing: .5px; }
+#stage-sign .sign-sep { color: rgba(255,255,255,.35); font-size: 11px; }
+#stage-sign .sign-viewers { color: var(--text-dim); font-weight: 600; }
+
+/* ---------- ป้ายสถานะ ---------- */
+#mode-badge {
+  position: fixed; right: 14px; top: 16px; z-index: 30;
+  background: rgba(20,4,40,.82); border: 1px solid rgba(255,212,94,.45);
+  color: var(--gold); font-size: 12px; font-weight: 700;
+  border-radius: 999px; padding: 7px 14px;
+  backdrop-filter: blur(6px);
+  max-width: 320px;
 }
+#mode-badge.hidden { display: none; }
 
 /* ---------- คอลัมน์ซ้าย / ขวา ---------- */
 #left-col {
-  position: fixed; left: 12px; top: 76px; bottom: 132px; width: 264px; z-index: 20;
+  position: fixed; left: 14px; top: 74px; bottom: 118px; width: 258px; z-index: 20;
   display: flex; flex-direction: column; gap: 10px; pointer-events: none;
 }
 #right-col {
-  position: fixed; right: 12px; top: 76px; width: 236px; z-index: 20;
+  position: fixed; right: 14px; top: 74px; width: 232px; z-index: 20;
   display: flex; flex-direction: column; gap: 10px; pointer-events: none;
 }
 .panel {
+  position: relative;
   background: var(--panel-bg); border: 1px solid var(--panel-line);
   border-radius: 14px; padding: 10px 12px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  box-shadow: 0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,212,94,.25);
 }
-.panel-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--gold); }
+.panel::before {
+  content: ""; position: absolute; inset: 3px; border-radius: 11px;
+  border: 1px dashed rgba(255, 212, 94, .18); pointer-events: none;
+}
+.panel-title { font-size: 13px; font-weight: 800; margin-bottom: 8px; color: var(--gold); text-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .rank-list { display: flex; flex-direction: column; gap: 7px; }
 .rank-row {
   display: flex; align-items: center; gap: 8px; font-size: 13px;
-  background: rgba(255,255,255,.06); border-radius: 10px; padding: 5px 8px;
+  background: rgba(255,255,255,.07); border-radius: 10px; padding: 5px 8px;
 }
 .rank-row .medal { width: 20px; text-align: center; font-size: 14px; }
-.rank-row img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.rank-row img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,212,94,.6); }
 .rank-row .r-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rank-row .r-score { font-size: 12px; color: var(--cyan); font-weight: 700; }
-.rank-row.top1 { background: linear-gradient(90deg, rgba(255,212,94,.28), rgba(255,255,255,.05)); }
+.rank-row .r-score { font-size: 12px; color: var(--cyan); font-weight: 800; }
+.rank-row.top1 { background: linear-gradient(90deg, rgba(255,212,94,.3), rgba(255,255,255,.05)); }
 
 /* แชท */
 .chat-panel { flex: 1; display: flex; flex-direction: column; min-height: 120px; overflow: hidden; }
@@ -137,24 +154,26 @@ html, body {
 @keyframes chat-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
 .chat-item img {
   width: 26px; height: 26px; border-radius: 50%; flex: none; object-fit: cover;
-  border: 1px solid rgba(255,255,255,.25);
+  border: 1px solid rgba(255,212,94,.55);
 }
-.chat-item .c-body { background: rgba(255,255,255,.10); border-radius: 10px; padding: 4px 9px; }
-.chat-item .c-name { color: var(--cyan); font-weight: 700; margin-right: 4px; }
+.chat-item .c-body { background: rgba(255,255,255,.1); border-radius: 10px; padding: 4px 9px; }
+.chat-item .c-name { color: var(--gold); font-weight: 700; margin-right: 4px; }
 
 /* Goal / ภารกิจ */
 .goal-count { color: var(--text-dim); font-weight: 400; }
 .goal-bar {
-  height: 8px; border-radius: 99px; overflow: hidden;
+  height: 9px; border-radius: 99px; overflow: hidden;
   background: rgba(255,255,255,.14); margin-bottom: 8px;
+  border: 1px solid rgba(255,212,94,.25);
 }
 .goal-fill {
   height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--cyan), var(--pink));
+  background: linear-gradient(90deg, var(--gold), var(--pink));
   border-radius: 99px; transition: width .5s ease;
+  box-shadow: 0 0 12px rgba(255, 46, 136, .6);
 }
 .goal-list { list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
-.goal-list li { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.06); padding: 5px 8px; border-radius: 9px; }
+.goal-list li { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.07); padding: 5px 8px; border-radius: 9px; }
 .g-emoji { font-size: 15px; }
 .g-name { flex: 1; color: var(--text-dim); }
 .g-num { font-weight: 800; color: var(--gold); }
@@ -166,98 +185,181 @@ html, body {
 
 /* ---------- เวที ---------- */
 #stage {
-  position: fixed; left: 0; right: 0; top: 18%; height: 60%; z-index: 10;
+  position: fixed; left: 0; right: 0; top: 50%; height: 44%; z-index: 10;
   pointer-events: none;
 }
 .seat {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  display: flex; flex-direction: column; align-items: center;
   transition: left .6s cubic-bezier(.22,1,.36,1), top .6s cubic-bezier(.22,1,.36,1);
   will-change: left, top, transform;
 }
-.char {
-  position: relative;
-  display: flex; flex-direction: column; align-items: center;
-  animation: char-bob 3.2s ease-in-out infinite;
+
+/* ===== ตัวละครเต้น ===== */
+.dancer-zoom {
+  transform-origin: 50% 100%;
+  transition: transform .5s ease;
 }
-@keyframes char-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+.dancer {
+  position: relative; width: 62px; height: 104px;
+  --outfit: #ff2e88; --outfit2: #ffd45e; --skin: #f6c9a0; --beat: .78s;
+  animation: dancer-bounce var(--beat) ease-in-out infinite;
 }
-.char .avatar-wrap {
-  position: relative; border-radius: 50%;
-  padding: 3px;
-  background: linear-gradient(135deg, var(--gold), #ff8ad1 55%, var(--cyan));
-  box-shadow: 0 0 18px rgba(255, 140, 220, .55), 0 6px 16px rgba(0,0,0,.45);
+@keyframes dancer-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-6px) rotate(-4deg); }
+  50%      { transform: translateY(0) rotate(0deg); }
+  75%      { transform: translateY(-6px) rotate(4deg); }
 }
-.char .avatar-wrap img {
-  display: block; border-radius: 50%; object-fit: cover;
-  border: 2px solid rgba(255,255,255,.9);
-  background: #3a1b57;
+.dancer .shadow {
+  position: absolute; bottom: -4px; left: 50%; margin-left: -27px;
+  width: 54px; height: 13px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(ellipse, rgba(255,205,120,.55), rgba(255,205,120,0) 70%);
 }
-.char .name-pill {
-  margin-top: 5px;
-  max-width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 11px; font-weight: 700; text-align: center;
-  background: rgba(20, 4, 38, .78); border: 1px solid rgba(255,255,255,.22);
-  padding: 2px 8px; border-radius: 99px;
+.dancer .torso {
+  position: absolute; top: 40px; left: 50%; margin-left: -15px;
+  width: 30px; height: 36px; border-radius: 15px 15px 9px 9px; z-index: 4;
+  background: linear-gradient(180deg, var(--outfit), var(--outfit2));
+  box-shadow: inset 0 -6px 10px rgba(0,0,0,.25);
 }
-.char .watch-tag {
-  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-  font-size: 10px; font-weight: 800; color: #2a0d3f;
+.dancer .arm {
+  position: absolute; top: 44px; left: 50%; margin-left: -4.5px;
+  width: 9px; height: 30px; border-radius: 99px; z-index: 3;
+  background: linear-gradient(180deg, var(--skin), var(--skin-dark));
+  transform-origin: 50% 3px;
+}
+.dancer .arm.l { margin-left: -15px; animation: arm-l var(--beat) ease-in-out infinite; }
+.dancer .arm.r { margin-left: 6px;  animation: arm-r var(--beat) ease-in-out infinite; }
+@keyframes arm-l { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(148deg); } }
+@keyframes arm-r { 0%, 100% { transform: rotate(148deg); } 50% { transform: rotate(24deg); } }
+.dancer .leg {
+  position: absolute; top: 72px; left: 50%; margin-left: -5.5px;
+  width: 11px; height: 30px; border-radius: 0 0 7px 7px; z-index: 2;
+  background: linear-gradient(180deg, var(--outfit2), var(--outfit-dark));
+  transform-origin: 50% 2px;
+}
+.dancer .leg.l { margin-left: -14px; animation: leg-l var(--beat) ease-in-out infinite; }
+.dancer .leg.r { margin-left: 3px;  animation: leg-r var(--beat) ease-in-out infinite; }
+@keyframes leg-l { 0%, 100% { transform: rotate(14deg); } 50% { transform: rotate(-14deg); } }
+@keyframes leg-r { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+.dancer .head {
+  position: absolute; top: 0; left: 50%; margin-left: -25px;
+  width: 50px; height: 50px; border-radius: 50%; z-index: 6;
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 14px rgba(255, 212, 94, .75), 0 4px 10px rgba(0,0,0,.45);
+  overflow: hidden; background: #3a1b57;
+  animation: head-nod var(--beat) ease-in-out infinite;
+}
+@keyframes head-nod { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+.dancer .head img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* แบบเตนที่ 2: กระดุดตั้ม */
+.dancer.d2 { --beat: .62s; animation-name: dancer-jump; }
+@keyframes dancer-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  20%      { transform: translateY(-14px) scale(.96, 1.05); }
+  45%      { transform: translateY(-16px) scale(1, 1); }
+  70%      { transform: translateY(0) scale(1.04, .94); }
+}
+.dancer.d2 .arm.l { animation-name: arm-up-l; }
+.dancer.d2 .arm.r { animation-name: arm-up-r; }
+@keyframes arm-up-l { 0%,100% { transform: rotate(150deg); } 50% { transform: rotate(190deg); } }
+@keyframes arm-up-r { 0%,100% { transform: rotate(190deg); } 50% { transform: rotate(150deg); } }
+
+/* แบบเตนที่ 3: เลื่อไหม้ side-step */
+.dancer.d3 { --beat: .92s; animation-name: dancer-sway; }
+@keyframes dancer-sway {
+  0%, 100% { transform: translateX(-9px) rotate(-6deg); }
+  50%      { transform: translateX(9px) rotate(6deg); }
+}
+.dancer.d3 .arm.l { animation-name: arm-swing-l; }
+.dancer.d3 .arm.r { animation-name: arm-swing-r; }
+@keyframes arm-swing-l { 0%,100% { transform: rotate(70deg); } 50% { transform: rotate(20deg); } }
+@keyframes arm-swing-r { 0%,100% { transform: rotate(20deg); } 50% { transform: rotate(70deg); } }
+.dancer.d3 .leg.l { animation-name: leg-step-l; }
+.dancer.d3 .leg.r { animation-name: leg-step-r; }
+@keyframes leg-step-l { 0%,100% { transform: rotate(22deg); } 50% { transform: rotate(-6deg); } }
+@keyframes leg-step-r { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(22deg); } }
+
+/* แบบเต้นที่ 4: หมุนตัว */
+.dancer.d4 { --beat: 1.05s; animation-name: dancer-spin; }
+@keyframes dancer-spin {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  35%      { transform: translateY(-5px) scaleX(1); }
+  50%      { transform: translateY(0) scaleX(-1); }
+  85%      { transform: translateY(-5px) scaleX(-1); }
+}
+.dancer.d4 .arm.l { animation-name: arm-up-l; }
+.dancer.d4 .arm.r { animation-name: arm-up-r; }
+
+/* เครื่องราช / ของขวัญ */
+.dancer.crown .head::after {
+  content: "👑"; position: absolute; top: -26px; left: 50%;
+  transform: translateX(-50%); font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
+}
+.dancer.gifted .head { border-color: #ff8ad1; box-shadow: 0 0 18px rgba(255,46,136,.9); }
+
+/* ป้ายเวลาดู */
+.dancer .watch-tag {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 800; color: #2a0d3f; z-index: 7;
   background: var(--gold); border-radius: 99px; padding: 1px 7px;
   white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.4);
 }
-.char.crown .avatar-wrap::after {
-  content: "👑"; position: absolute; top: -22px; left: 50%;
-  transform: translateX(-50%); font-size: 20px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
-}
-.char.gifted .avatar-wrap { background: linear-gradient(135deg, #ff2e88, #ffd45e, #25f4ee); }
 
-/* อนิเมชันเข้า/ออก */
-.seat.pop-in { animation: seat-pop-in .55s cubic-bezier(.2,1.6,.4,1) both; }
+/* ชื่อใต้ตัวละคร */
+.name-pill {
+  margin-top: 4px;
+  max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; font-weight: 700; text-align: center;
+  background: rgba(20, 4, 38, .8); border: 1px solid rgba(255,212,94,.4);
+  padding: 2px 9px; border-radius: 99px;
+}
+
+/* อนิเมชันเข้า / ออก */
+.seat.pop-in { animation: seat-pop-in .6s cubic-bezier(.2,1.7,.4,1) both; }
 @keyframes seat-pop-in {
-  0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
-  60% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  0%   { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1); }
 }
 .seat.pop-out { animation: seat-pop-out 1s ease-in forwards; pointer-events: none; }
 @keyframes seat-pop-out {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: brightness(1); }
-  35% { transform: translate(-50%, -50%) scale(1.35); opacity: 1; filter: brightness(2.2); }
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: brightness(1); }
+  35%  { transform: translate(-50%, -50%) scale(1.35); opacity: 1; filter: brightness(2.2); }
   100% { transform: translate(-50%, -90%) scale(.1); opacity: 0; filter: brightness(3); }
 }
 .puff {
-  position: absolute; left: 50%; top: 50%; z-index: 15; pointer-events: none;
-  font-size: 26px; font-weight: 900; color: #fff;
-  text-shadow: 0 0 12px var(--pink), 0 2px 6px rgba(0,0,0,.6);
+  position: fixed; z-index: 16; pointer-events: none;
+  font-size: 28px; font-weight: 900; color: #fff;
+  text-shadow: 0 0 14px var(--pink), 0 2px 6px rgba(0,0,0,.6);
   animation: puff 1s ease-out forwards;
 }
 @keyframes puff {
-  0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; }
-  25% { transform: translate(-50%,-50%) scale(1.25); opacity: 1; }
-  100% { transform: translate(-50%,-160%) scale(1); opacity: 0; }
+  0%   { transform: translate(-50%,-50%) scale(.4); opacity: 0; }
+  25%  { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(-50%,-170%) scale(1); opacity: 0; }
 }
 .confetti {
   position: fixed; width: 8px; height: 12px; z-index: 40; pointer-events: none;
   animation: confetti-fly 1.1s ease-out forwards;
 }
 @keyframes confetti-fly {
-  0% { transform: translate(0,0) rotate(0); opacity: 1; }
+  0%   { transform: translate(0,0) rotate(0); opacity: 1; }
   100% { transform: translate(var(--dx), var(--dy)) rotate(540deg); opacity: 0; }
 }
 
 /* ---------- แบนเนอร์ ---------- */
 #event-banner {
-  position: fixed; left: 12px; bottom: 150px; z-index: 25;
+  position: fixed; left: 14px; bottom: 86px; z-index: 25;
   display: flex; align-items: center; gap: 8px;
-  max-width: 300px;
-  background: linear-gradient(90deg, rgba(255,46,136,.85), rgba(120,20,180,.7));
-  border: 1px solid rgba(255,255,255,.3);
+  max-width: 320px;
+  background: linear-gradient(90deg, rgba(179,32,122,.9), rgba(60,8,60,.78));
+  border: 1px solid rgba(255,212,94,.45);
   border-radius: 12px; padding: 8px 12px;
   font-size: 13px; font-weight: 600;
-  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  box-shadow: 0 6px 22px rgba(0,0,0,.45);
   opacity: 0; transform: translateY(8px);
   transition: opacity .35s ease, transform .35s ease;
 }
@@ -267,15 +369,15 @@ html, body {
 /* ---------- แถวล่าง: คิว ---------- */
 #queue-bar {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: 74px; z-index: 22;
+  bottom: 16px; z-index: 22;
   display: flex; align-items: center; gap: 12px;
   background: var(--panel-bg); border: 1px solid var(--panel-line);
   border-radius: 16px; padding: 8px 14px;
   backdrop-filter: blur(10px);
-  max-width: min(860px, 72vw);
-  box-shadow: 0 10px 34px rgba(0,0,0,.42);
+  max-width: min(880px, 74vw);
+  box-shadow: 0 10px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,212,94,.22);
 }
-.queue-label { display: flex; flex-direction: column; align-items: center; line-height: 1.1; flex: none; }
+.queue-label { display: flex; flex-direction: column; align-items: center; line-height: 1.15; flex: none; }
 .q-title { font-size: 12px; font-weight: 800; color: var(--gold); white-space: nowrap; }
 .q-count { font-size: 11px; color: var(--text-dim); }
 .queue-chips { display: flex; gap: 8px; overflow: hidden; height: 58px; align-items: center; }
@@ -288,12 +390,9 @@ html, body {
 @keyframes chip-out { to { transform: scale(0) translateY(-30px); opacity: 0; } }
 .qchip img {
   width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
-  border: 2px solid rgba(255,255,255,.35);
+  border: 2px solid rgba(255,212,94,.45);
 }
-.qchip svg.ring {
-  position: absolute; inset: -4px; width: 54px; height: 54px;
-  transform: rotate(-90deg);
-}
+.qchip svg.ring { position: absolute; inset: -4px; width: 54px; height: 54px; transform: rotate(-90deg); }
 .qchip .ring .bg { stroke: rgba(255,255,255,.18); }
 .qchip .ring .fg {
   stroke: var(--cyan); stroke-linecap: round;
@@ -303,66 +402,44 @@ html, body {
 .qchip.ready .ring .fg { stroke: var(--gold); filter: drop-shadow(0 0 6px var(--gold)); }
 .qchip.ready img { border-color: var(--gold); animation: ready-glow 1s ease-in-out infinite; }
 @keyframes ready-glow {
-  0%,100% { box-shadow: 0 0 6px rgba(255,212,94,.6); }
-  50% { box-shadow: 0 0 16px rgba(255,212,94,1); }
+  0%, 100% { box-shadow: 0 0 6px rgba(255,212,94,.6); }
+  50% { box-shadow: 0 0 18px rgba(255,212,94,1); }
 }
 .qchip .qname {
   position: absolute; left: 50%; transform: translateX(-50%);
   bottom: -14px; font-size: 9px; color: var(--text-dim);
   max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.queue-hint { font-size: 11px; color: var(--text-dim); max-width: 150px; line-height: 1.3; flex: none; }
-
-/* ---------- แถบ action ---------- */
-#action-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; height: 62px; z-index: 30;
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 14px;
-  background: linear-gradient(0deg, rgba(8,2,20,.88), rgba(8,2,20,0));
-}
-.comment-box { flex: 1; max-width: 520px; }
-.comment-box input {
-  width: 100%; height: 40px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.28);
-  background: rgba(255,255,255,.12); color: #fff;
-  padding: 0 18px; font-size: 14px; font-family: var(--font);
+.queue-join { flex: none; }
+.queue-join input {
+  width: 210px; height: 40px; border-radius: 999px;
+  border: 1px solid rgba(255,212,94,.4);
+  background: rgba(255,255,255,.1); color: #fff;
+  padding: 0 16px; font-size: 13px; font-family: var(--font);
   outline: none; backdrop-filter: blur(6px);
 }
-.comment-box input::placeholder { color: rgba(255,255,255,.55); }
-.act-btn {
-  width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.10); color: #fff; font-size: 19px; cursor: pointer;
-  display: grid; place-items: center; transition: transform .15s ease;
-}
-.act-btn:hover { transform: scale(1.12); background: rgba(255,255,255,.2); }
-.like-btn { background: linear-gradient(135deg, #ff2e88, #ff6a88); border: 0; box-shadow: 0 4px 16px rgba(255,46,136,.5); }
-.like-btn.beat { animation: beat .4s ease; }
-@keyframes beat { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } }
-.share-pill {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22);
-  border-radius: 999px; padding: 9px 14px; font-size: 13px;
-}
+.queue-join input::placeholder { color: rgba(255,255,255,.55); }
 
-/* หัวใจลอย */
+/* ---------- หัวใจลอย (ไลก์จาก TikTok) ---------- */
 .float-heart {
-  position: fixed; bottom: 70px; z-index: 35; pointer-events: none;
-  font-size: 26px; animation: heart-up 1.4s ease-out forwards;
+  position: fixed; bottom: 90px; z-index: 35; pointer-events: none;
+  font-size: 26px; animation: heart-up 1.5s ease-out forwards;
 }
 @keyframes heart-up {
-  0% { transform: translateY(0) scale(.6) rotate(0); opacity: 0; }
-  15% { opacity: 1; }
-  100% { transform: translateY(-46vh) translateX(var(--hx)) scale(1.3) rotate(var(--hr)); opacity: 0; }
+  0%   { transform: translateY(0) scale(.6) rotate(0); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(-44vh) translateX(var(--hx)) scale(1.3) rotate(var(--hr)); opacity: 0; }
 }
 
 /* ---------- โต๊ะตอบ ---------- */
 #toast-layer {
-  position: fixed; left: 50%; top: 12%; transform: translateX(-50%);
+  position: fixed; left: 50%; top: 15%; transform: translateX(-50%);
   z-index: 45; display: flex; flex-direction: column; align-items: center; gap: 8px;
   pointer-events: none;
 }
 .toast {
   background: linear-gradient(135deg, rgba(255,46,136,.95), rgba(255,169,77,.95));
+  border: 1px solid rgba(255,255,255,.4);
   border-radius: 999px; padding: 9px 20px;
   font-size: 15px; font-weight: 800; color: #fff;
   box-shadow: 0 8px 30px rgba(255,46,136,.5);
@@ -373,33 +450,23 @@ html, body {
 @keyframes toast-in { from { transform: translateY(-24px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes toast-out { to { transform: translateY(-16px) scale(.85); opacity: 0; } }
 
-/* ---------- ป้ายเตือนโหมด ---------- */
-#mode-badge {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  top: 74px; z-index: 28;
-  background: rgba(20,4,40,.8); border: 1px solid rgba(255,212,94,.5);
-  color: var(--gold); font-size: 12px; font-weight: 700;
-  border-radius: 999px; padding: 6px 14px;
-  backdrop-filter: blur(6px);
-}
-#mode-badge.hidden { display: none; }
-
 /* ---------- ปุ่มแผงควบคุม ---------- */
 #admin-fab {
-  position: fixed; right: 14px; bottom: 76px; z-index: 40;
+  position: fixed; right: 14px; bottom: 88px; z-index: 40;
   width: 40px; height: 40px; border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.25);
+  border: 1px solid rgba(255,212,94,.35);
   background: rgba(20,4,40,.75); color: #fff; font-size: 18px; cursor: pointer;
   backdrop-filter: blur(6px);
 }
 #admin-fab:hover { background: rgba(60,10,110,.85); }
 
-/* ---------- Responsive เล็กน้อย ---------- */
-@media (max-width: 1100px) {
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
   #left-col { width: 220px; }
   #right-col { width: 200px; }
-  .queue-hint { display: none; }
+  .queue-join input { width: 150px; }
 }
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   #left-col, #right-col { display: none; }
+  .queue-join { display: none; }
 }
