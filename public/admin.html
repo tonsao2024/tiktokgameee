@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tiktokgameee — แผงควบคุม</title>
+<style>
+  :root {
+    --pink:#ff2e88; --cyan:#25f4ee; --gold:#ffd45e;
+    --bg:#150829; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh; background:radial-gradient(120% 90% at 50% 0%, #2a0d4d, var(--bg) 60%);
+    color:#fff; font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;
+    padding:24px; display:flex; flex-direction:column; align-items:center; gap:18px;
+  }
+  h1 { font-size:22px; }
+  h1 span { color:var(--gold); }
+  .card {
+    width:min(720px,100%); background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; padding:18px 20px; backdrop-filter:blur(8px);
+  }
+  .card h2 { font-size:15px; color:var(--gold); margin-bottom:12px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  input[type=text], input[type=number] {
+    background:rgba(255,255,255,.1); border:1px solid var(--line); color:#fff;
+    border-radius:10px; padding:9px 12px; font-size:14px; font-family:inherit; outline:none;
+  }
+  input[type=text] { flex:1; min-width:180px; }
+  input[type=number] { width:90px; }
+  button {
+    background:linear-gradient(135deg,var(--pink),#ff5f6d); color:#fff; border:0;
+    border-radius:10px; padding:10px 16px; font-size:14px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  button.ghost { background:rgba(255,255,255,.12); }
+  button.cyan { background:linear-gradient(135deg,#1fb9b3,var(--cyan)); color:#04292b; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .status { font-size:13px; padding:8px 12px; border-radius:10px; background:rgba(0,0,0,.3); }
+  .status b { color:var(--cyan); }
+  .status .err { color:#ff8aa0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px 16px; }
+  label.field { display:flex; flex-direction:column; gap:4px; font-size:12px; color:rgba(255,255,255,.75); }
+  .hint { font-size:12px; color:rgba(255,255,255,.55); line-height:1.5; margin-top:6px; }
+  .pill { display:inline-block; font-size:11px; padding:2px 8px; border-radius:99px; background:rgba(255,255,255,.14); }
+  a.btn-link { color:var(--cyan); font-weight:700; text-decoration:none; font-size:14px; }
+  .stats { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; }
+  .stats b { color:var(--gold); font-size:16px; display:block; }
+  .toggle { display:flex; align-items:center; gap:8px; font-size:14px; }
+</style>
+</head>
+<body>
+  <h1>⚙️ tiktokgameee — <span>แผงควบคุม</span></h1>
+  <div><a class="btn-link" href="/" target="_blank">🎪 เปิดหน้าเกมส์ (หน้าใหม่) ↗</a></div>
+
+  <div class="card">
+    <h2>สถานะ</h2>
+    <div class="status" id="status-box">กำลังโหลด...</div>
+    <div class="row" style="margin-top:12px">
+      <input type="text" id="username" placeholder="@username ช่อง TikTok ที่กำลัง LIVE" />
+      <button id="btn-connect">🔴 เชื่อมต่อ LIVE</button>
+      <button class="ghost" id="btn-disconnect">ตัดการเชื่อมต่อ</button>
+    </div>
+    <div class="row">
+      <div class="toggle">
+        <input type="checkbox" id="sim-toggle" />
+        <label for="sim-toggle">🧪 โหมดทดสอบ (Simulator) — ปลอมผู้ชมเข้ามาไม่ต้องต่อ TikTok</label>
+      </div>
+    </div>
+    <div class="hint">
+      การต่อ TikTok LIVE จริงต้องใช้ <b>SIGN_API_KEY</b> (ฟรีจาก eulerstream.com) ใส่ในไฟล์ <b>.env</b> หรือตัวแปรแวดล้อมก่อนรัน <code>npm start</code><br>
+      ตัวอย่าง: <code>SIGN_API_KEY=xxxx npm start</code> — ถ้ายังไม่มี key ให้ใช้ Simulator ทดสอบก่อนได้เลย
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>กติกาเกมส์</h2>
+    <div class="grid">
+      <label class="field">ช slot บนเวที<input type="number" id="c-stageSlots" min="2" max="30" /></label>
+      <label class="field">คนที่แสดงด้านล่าง<input type="number" id="c-queueSlots" min="4" max="40" /></label>
+      <label class="field">ดูครบ (วินาที) = ขึ้นเวที<input type="number" id="c-watchToStageSeconds" min="3" max="300" /></label>
+      <label class="field">ไม่ตอบสนอง (วินาที) = ออกไป<input type="number" id="c-leaveInactiveSeconds" min="5" max="600" /></label>
+      <label class="field">1 ไลก์ = ลดรอ (วินาที)<input type="number" id="c-likeBoost" step="0.1" min="0" max="5" /></label>
+      <label class="field">1 คอมเมนต์ = ลดรอ (วินาที)<input type="number" id="c-chatBoost" step="0.1" min="0" max="10" /></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="toggle"><input type="checkbox" id="c-giftInstantStage" /><label for="c-giftInstantStage">🎁 ส่งของขวัญ = เด้งขึ้นเวทีทันที</label></div>
+      <div class="toggle"><input type="checkbox" id="c-roomUserKick" /><label for="c-roomUserKick">👥 จำนวนผู้ชมลดลง = ไล่คนออกตาม</label></div>
+    </div>
+    <div class="row">
+      <button class="cyan" id="btn-save-config">บันทึกกติกา</button>
+      <span class="hint" id="config-msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Simulator — ตัวเลข</h2>
+    <div class="grid">
+      <label class="field">คนเข้า / นาที<input type="number" id="c-simJoinPerMin" min="0" max="600" /></label>
+      <label class="field">คนออก / นาที<input type="number" id="c-simLeavePerMin" min="0" max="600" /></label>
+      <label class="field">ไลก์ / นาที<input type="number" id="c-simLikePerMin" min="0" max="600" /></label>
+      <label class="field">คอมเมนต์ / นาที<input type="number" id="c-simChatPerMin" min="0" max="600" /></label>
+      <label class="field">ของขวัญ / นาที<input type="number" id="c-simGiftPerMin" min="0" max="120" /></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="cyan" id="btn-save-sim">บันทึก + รีสตาร์ท Simulator</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ทดสอบมือ</h2>
+    <div class="row">
+      <input type="text" id="manual-name" placeholder="ชื่อผู้ชมที่จะเพิ่มเข้าเกมส์" />
+      <button id="btn-add">➕ เพิ่มผู้ชม</button>
+      <button class="ghost" id="btn-clear">🧹 ล้างผู้ชมทั้งหมด</button>
+    </div>
+    <div class="stats" id="stats-box"></div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
