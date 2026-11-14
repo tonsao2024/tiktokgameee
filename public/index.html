@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>เวทีหมอลำออนไลน์</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div id="labels"></div>
+    <div id="toasts"></div>
+
+    <button id="gear" title="ตั้งค่า" aria-label="ตั้งค่า">⚙</button>
+    <form id="panel" hidden>
+      <div class="head">
+        <h2>ตั้งค่าเวที</h2>
+        <button type="button" id="btnClose" aria-label="ปิด">✕</button>
+      </div>
+      <p id="msg" class="status"></p>
+
+      <details open name="sec">
+        <summary>🪧 ป้ายชื่อเวที</summary>
+        <label>ข้อความบนป้าย (พิมพ์อะไรก็ได้ ป้ายเปลี่ยนทันที)
+          <input id="title" maxlength="80" placeholder="เช่น หมอลำออนไลน์" autocomplete="off" />
+        </label>
+      </details>
+
+      <details name="sec">
+        <summary>🎪 ขนาดและฉากเวที</summary>
+        <label>ความกว้างเวที <span id="widthVal"></span> เมตร
+          <input id="stageWidth" type="range" min="8" max="22" step="0.5" />
+        </label>
+        <label>ฉากตกแต่งเวที
+          <select id="theme"></select>
+        </label>
+        <p class="hint">เวทีกว้างขึ้น กล้องจะถอยออกเองให้เห็นครบ (ปรับมุมเองได้ที่หัวข้อมุมกล้อง)</p>
+      </details>
+
+      <details name="sec">
+        <summary>🍢 บูทร้านของกิน</summary>
+        <label>ที่มาของชื่อร้าน
+          <select id="shopMode">
+            <option value="manual">ใช้ชื่อที่พิมพ์ด้านล่าง</option>
+            <option value="gift">อัตโนมัติ: ผู้ส่งของขวัญสูงสุด 6 คนได้เป็นชื่อร้าน</option>
+          </select>
+        </label>
+        <p class="hint">พิมพ์ชื่อร้านเองได้ หรือแตะช่องแล้วเลือกชื่อบัญชีผู้ชมที่อยู่ในไลฟ์ตอนนี้ (เว้นว่าง = "ร้านว่าง ให้เช่า")</p>
+        <div class="shops">
+          <label>🥗 ร้าน 1 (ซ้ายหน้า)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+          <label>🍗 ร้าน 2 (ขวาหน้า)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+          <label>🍢 ร้าน 3 (ซ้ายกลาง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+          <label>🍧 ร้าน 4 (ขวากลาง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+          <label>🍙 ร้าน 5 (ซ้ายหลัง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+          <label>🧋 ร้าน 6 (ขวาหลัง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
+        </div>
+        <datalist id="viewerNames"></datalist>
+      </details>
+
+      <details name="sec">
+        <summary>🎥 มุมกล้อง</summary>
+        <p class="hint">ลากนิ้ว/เมาส์บนเวทีเพื่อหมุน • ถ่างนิ้ว/ล้อเมาส์เพื่อซูม • สองนิ้วลากเพื่อเลื่อน หรือกดปุ่มค้าง</p>
+        <div class="cam">
+          <button type="button" data-cam="in">＋ ซูมเข้า</button>
+          <button type="button" data-cam="rotU">มุมสูง</button>
+          <button type="button" data-cam="out">－ ซูมออก</button>
+          <button type="button" data-cam="rotL">⟲ หมุนซ้าย</button>
+          <button type="button" data-cam="reset" class="primary">รีเซ็ต</button>
+          <button type="button" data-cam="rotR">⟳ หมุนขวา</button>
+          <button type="button" data-cam="fwd">▲ เดินหน้า</button>
+          <button type="button" data-cam="rotD">มุมต่ำ</button>
+          <button type="button" data-cam="back">▼ ถอยหลัง</button>
+          <button type="button" data-cam="left">◀ ซ้าย</button>
+          <button type="button" data-cam="up">⬆ ขึ้น</button>
+          <button type="button" data-cam="right">▶ ขวา</button>
+          <span></span>
+          <button type="button" data-cam="down">⬇ ลง</button>
+          <span></span>
+        </div>
+      </details>
+
+      <details name="sec">
+        <summary>💃 ตัวละครและกติกา</summary>
+        <label>ขนาดรูปโปรไฟล์ <span id="picVal"></span>%
+          <input id="picSize" type="range" min="15" max="70" />
+        </label>
+        <div class="row">
+          <label>คนบนเวที (สูงสุด <span id="maxStage"></span>)
+            <input id="stageSize" type="number" min="1" max="24" inputmode="numeric" />
+          </label>
+          <label>จังหวะเต้น (BPM)
+            <input id="bpm" type="number" min="60" max="200" inputmode="numeric" />
+          </label>
+        </div>
+        <div class="row">
+          <label>เงียบกี่วินาที = หายไป
+            <input id="idleTimeout" type="number" min="15" max="3600" inputmode="numeric" />
+          </label>
+          <label>ดูกี่วินาทีถึงขึ้นเวทีได้
+            <input id="minStageSeconds" type="number" min="0" max="3600" inputmode="numeric" />
+          </label>
+        </div>
+        <p class="hint">แก้แล้วบันทึกให้อัตโนมัติ</p>
+      </details>
+
+      <details name="sec">
+        <summary>📡 เชื่อมต่อ TikTok LIVE</summary>
+        <p id="status" class="status">…</p>
+        <label>ชื่อผู้ใช้ TikTok ที่กำลังไลฟ์
+          <input id="username" placeholder="@username" autocomplete="off" autocapitalize="off" />
+        </label>
+        <div class="row">
+          <button type="button" id="btnConnect" class="primary">เชื่อมต่อไลฟ์</button>
+          <button type="button" id="btnDemo">โหมดทดลอง</button>
+          <button type="button" id="btnStop">หยุด</button>
+        </div>
+      </details>
+
+      <label id="keyRow" hidden>รหัสผู้ดูแล
+        <input id="key" type="password" autocomplete="off" />
+      </label>
+    </form>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

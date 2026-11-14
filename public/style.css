@@ -1,0 +1,207 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #070312;
+  font-family: "Sarabun", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  color: #fff;
+}
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+
+/* ----- กรอบรูปโปรไฟล์กลม ๆ บนหัว + ป้ายชื่อ ----- */
+.tag {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0; height: 0;
+  will-change: transform;
+  transition: opacity .35s;
+}
+.tag .pic {
+  position: absolute;
+  width: 56px; height: 56px;
+  left: -28px; top: -56px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: #555 center/cover;
+  box-shadow: 0 2px 8px rgba(0,0,0,.55);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 26px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.tag .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tag.stage .pic { border-color: #ffd54a; box-shadow: 0 0 12px #ffb300, 0 2px 8px rgba(0,0,0,.55); }
+.tag .crown {
+  position: absolute;
+  left: -20px; top: -86px;
+  width: 40px;
+  text-align: center;
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.5));
+}
+.tag .name {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  max-width: 96px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(20, 6, 30, .72);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag.stage .name { background: rgba(140, 20, 20, .85); color: #ffe9a8; }
+
+/* ----- หัวใจ / ของขวัญ ลอยขึ้น ----- */
+.pop {
+  position: absolute;
+  left: 0; top: 0;
+  font-size: clamp(13px, 2vh, 22px);
+  font-weight: 800;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0,0,0,.7);
+  animation: pop 1.4s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes pop {
+  0% { opacity: 0; margin-top: 0; scale: .4; }
+  15% { opacity: 1; scale: 1.15; }
+  100% { opacity: 0; margin-top: -70px; scale: 1; }
+}
+
+/* ----- ประกาศสั้น ๆ ----- */
+#toasts {
+  position: fixed;
+  left: 0; right: 0; top: 3%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.toast {
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b3121f, #e0457b);
+  border: 2px solid #ffd54a;
+  font-size: clamp(14px, 2.2vh, 22px);
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0,0,0,.5);
+  animation: toast 3.2s ease forwards;
+  max-width: 92vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes toast {
+  0% { opacity: 0; transform: translateY(-20px) scale(.8); }
+  10%, 85% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* ----- แผงตั้งค่า (ใช้ ?clean=1 เพื่อซ่อนปุ่มตอนไลฟ์) ----- */
+[hidden] { display: none !important; }
+#labels { z-index: 1; }
+#toasts { z-index: 2; }
+#scene { touch-action: none; cursor: grab; }
+#gear {
+  position: fixed;
+  z-index: 11;
+  right: 10px; bottom: 10px;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(30, 12, 46, .7);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+body.clean #gear { display: none; }
+/* แผงอยู่ครึ่งล่างของจอ เพื่อให้ยังเห็นเวทีด้านบนขณะปรับ */
+#panel {
+  position: fixed;
+  z-index: 10;
+  left: 0; right: 0; bottom: 0;
+  margin: 0 auto;
+  width: min(460px, 100vw);
+  max-height: 46vh;
+  overflow: auto;
+  padding: 10px 12px 64px;
+  border-radius: 16px 16px 0 0;
+  background: rgba(22, 10, 34, .9);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 14px;
+}
+#panel .head { display: flex; align-items: center; justify-content: space-between; }
+#panel h2 { margin: 0; font-size: 17px; }
+#panel #btnClose { flex: 0 0 auto; width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+#panel details { border-top: 1px solid rgba(255,255,255,.14); margin-top: 8px; padding-top: 2px; }
+#panel summary { cursor: pointer; padding: 8px 2px; font-size: 15px; font-weight: 700; }
+#panel .hint { margin: 2px 0 6px; font-size: 12px; color: #bfaed8; }
+#panel label { display: block; margin: 8px 0 0; flex: 1; font-size: 12px; color: #d9c9ef; }
+#panel input {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #5c4a78;
+  background: #120820;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+}
+#panel input[type=range] { padding: 0; }
+#panel .row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-end; }
+#panel button {
+  flex: 1;
+  padding: 9px 6px;
+  border-radius: 8px;
+  border: 1px solid #5c4a78;
+  background: #2a1a40;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+#panel button.primary { background: #d81b60; border-color: #ff6fa0; font-weight: 700; }
+#panel .cam { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+#panel .cam button { padding: 9px 2px; font-size: 13px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.status { margin: 4px 0 0; color: #ffd54a; font-size: 13px; word-break: break-word; }
+#msg:empty { display: none; }
+#panel select {
+  display: block; width: 100%; margin-top: 3px; padding: 8px; border-radius: 8px;
+  border: 1px solid #5c4a78; background: #120820; color: #fff; font: inherit; font-size: 16px;
+}
+#panel .shops { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+
+/* ป้ายจำนวนใจ/ของขวัญ มุมกรอบรูป */
+.tag .badge {
+  position: absolute;
+  left: 6px; top: -22px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: rgba(190, 20, 60, .92);
+  border: 1px solid rgba(255,255,255,.7);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 17px;
+  white-space: nowrap;
+}
+.tag .badge:empty { display: none; }
+.tag .badge.gift { background: rgba(190, 120, 0, .95); }
+/* ตอนได้ขึ้นเวที: กรอบรูปขยายเรืองแสง */
+.tag.hero .pic { animation: hero 2.6s ease-out; }
+@keyframes hero {
+  0% { scale: 1; box-shadow: 0 0 0 0 #fff; }
+  20% { scale: 2.1; box-shadow: 0 0 34px 12px #ffd54a; border-color: #fff; }
+  70% { scale: 1.7; box-shadow: 0 0 26px 8px #ffd54a; }
+  100% { scale: 1; }
+}
