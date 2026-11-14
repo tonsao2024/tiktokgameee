@@ -104,7 +104,12 @@ export function buildStage(scene, opts = {}) {
   const Z_BACK = -1 - (6.2 + (S - 1) * 2.4);
   const MID_Z = (Z_FRONT + Z_BACK) / 2;
   const TRUSS_Y = STAGE_Y + 6.4 * S;
-  const VIEW = TOWER_X + 3.5; // ครึ่งความกว้างที่กล้องต้องเห็นครบ
+  // บูทของกิน: เรียงเฉียงเป็นรูปตัว V บานออกจากมุมเวที (ร้านในสุดชิดเวที ร้านถัดไปถอยออกด้านข้าง)
+  // ลานเต้นตรงกลางจึงกว้างขึ้นเรื่อย ๆ และไม่มีร้านมาบังคนเต้น
+  const boothX = (k) => TOWER_X - 0.3 + k * 0.85;
+  const boothZ = (k) => 3.2 + k * 2.9;
+  // ครึ่งความกว้างที่กล้องต้องเห็นครบ (ต้องเห็นทั้งลำโพง และร้านนอกสุด)
+  const VIEW = Math.max(TOWER_X + 3.5, ((boothX(2) + 1.0) / 0.283 + boothZ(2) + 1) * TAN_H);
   const CAM_Z = -1 + VIEW / TAN_H; // ตำแหน่งกล้องอัตโนมัติ (จอแนวตั้ง)
   const root = new THREE.Group();
   scene.add(root);
@@ -564,12 +569,12 @@ export function buildStage(scene, opts = {}) {
   const balloons = [];
   const vendors = [];
   const booths = [];
-  const BOOTH_Z0 = 4.6, BOOTH_Z1 = Math.max(9, CAM_Z - 16.5);
   for (let i = 0; i < 6; i++) {
     const side = i % 2 ? 1 : -1;
-    const z = BOOTH_Z0 + ((BOOTH_Z1 - BOOTH_Z0) * Math.floor(i / 2)) / 2;
-    const x = side * (edge(z) - 1.8);
-    const rot = -side * 0.95;
+    const k = Math.floor(i / 2);
+    const z = boothZ(k);
+    const x = side * boothX(k);
+    const rot = -side * 0.8; // หันเฉียงเข้าหาลานเต้นและกล้อง
     const g = new THREE.Group();
     g.position.set(x, 0, z);
     g.rotation.y = rot;
@@ -773,7 +778,9 @@ export function buildStage(scene, opts = {}) {
   const rowStep = Math.max(1.65, (CAM_Z - 15.5 - 2.9) / 7); // กระจายแถวให้เต็มลาน
   const groundRows = []; // แถวของแต่ละตำแหน่ง (0 = หน้าสุดติดเวที)
   for (let z = 2.9, row = 0; groundSlots.length < 33 && row < 9; z += rowStep, row++) {
-    const half = edge(z) - 3.7;
+    // ช่วงที่มีร้าน: กว้างได้ถึงแนวร้าน / พ้นแนวร้านแล้ว: ใช้ได้เต็มความกว้างจอ
+    const lineX = TOWER_X - 0.3 + ((z - 3.2) / 2.9) * 0.85;
+    const half = Math.min(edge(z) - 1.3, z < boothZ(2) + 2 ? lineX - 2.3 : 99);
     const n = Math.min(7, Math.max(2, Math.floor((half * 2) / 1.55) + 1));
     for (let i = 0; i < n && groundSlots.length < 33; i++) {
       const x = (i - (n - 1) / 2) * 1.55 + (row % 2 ? 0.3 : -0.3);
