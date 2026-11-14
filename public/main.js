@@ -682,4 +682,4 @@ $('picSize').oninput = () => {
 };
 
 // จอกว้าง (คอม): เปิดแผงด้านซ้ายไว้เลย ยกเว้นหน้า ?clean=1 ที่ใช้ออกไลฟ์
-if (!document.body.classList.contains('clean') && innerWidth > 820) openPanel(true);
+if (!document.body.classList.contains('clean') && innerWidth > 560) openPanel(true);
