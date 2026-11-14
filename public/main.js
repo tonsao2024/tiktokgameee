@@ -638,6 +638,7 @@ function showTab(name) {
 }
 for (const b of panel.querySelectorAll('.side [data-tab]')) b.onclick = () => showTab(b.dataset.tab);
 $('goTest').onclick = () => showTab('test');
+$('btnToTest').onclick = () => api('/api/mode', { mode: 'test' }).then((r) => updatePanelStatus(r.source));
 // โหมดทดสอบ / โหมดรันจริง
 $('modeTest').onclick = () => {
   if ($('modeTest').classList.contains('on')) return;

@@ -64,7 +64,7 @@
             <p class="hint">ต้องเริ่มไลฟ์ใน TikTok ก่อนแล้วค่อยกดเชื่อมต่อ • ตอนไลฟ์ใช้ลิงก์ <b>/?clean=1</b> ใน LIVE Studio (ไม่มีแผงและปุ่ม)</p>
           </div>
           <div id="testBox">
-            <p class="hint">ตอนนี้เป็นผู้ชมจำลองทั้งหมด ไปที่แท็บ "🧪 ทดสอบ" เพื่อกดจำลองคนเข้า ไลก์ ของขวัญ ทีละคน</p>
+            <p class="hint">ตอนนี้เป็นผู้ชมจำลองทั้งหมด ไปที่แท็บ "🧪 ทดสอบ" เพื่อกดจำลองคนเข้า ไลก์ ของขวัญ ทีละคน<br />ช่องใส่ชื่อผู้ใช้และปุ่ม "เชื่อมต่อไลฟ์" จะขึ้นเมื่อกด "🔴 โหมดรันจริง" ด้านบน</p>
             <button type="button" id="goTest">ไปแท็บทดสอบ →</button>
           </div>
         </section>
@@ -156,7 +156,10 @@
 
         <section data-tab="test" hidden>
           <h2>🧪 ทดสอบ</h2>
-          <p id="testOff" class="status" hidden>ตอนนี้อยู่โหมดรันจริง ปุ่มทดสอบถูกปิดไว้ สลับเป็นโหมดทดสอบที่แท็บ "🚀 เริ่มไลฟ์" ก่อน</p>
+          <div id="testOff" hidden>
+            <p class="status">ตอนนี้อยู่โหมดรันจริง ปุ่มด้านล่างจึงกดไม่ได้ (กันข้อมูลปลอมปนกับไลฟ์จริง)</p>
+            <button type="button" id="btnToTest" class="primary">🧪 สลับเป็นโหมดทดสอบเพื่อใช้ปุ่มเหล่านี้</button>
+          </div>
           <fieldset id="testSet">
             <label>ชื่อผู้ชม (ชื่อเดิม = คนเดิม)
               <input id="tName" value="สมชาย" maxlength="30" autocomplete="off" />
