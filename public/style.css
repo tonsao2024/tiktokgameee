@@ -261,3 +261,8 @@ body.panel-open #view {
   70% { scale: 1.7; box-shadow: 0 0 26px 8px #ffd54a; }
   100% { scale: 1; }
 }
+
+#panel .shops .row { margin-top: 3px; align-items: stretch; }
+#panel .shops .row input { margin-top: 0; }
+#panel .shops .row .del { flex: 0 0 38px; padding: 0; }
+#panel button:disabled { opacity: .5; cursor: not-allowed; }

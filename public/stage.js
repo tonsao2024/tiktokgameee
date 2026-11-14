@@ -34,7 +34,8 @@ export const THEMES = {
     sign: ['#7a0a16', '#ff3b30'],
   },
 };
-export const FOOD = ['🥗', '🍗', '🍢', '🍧', '🍙', '🧋'];
+export const FOOD = ['🥗', '🍗', '🍢', '🍧', '🍙', '🧋', '🍜', '🌽', '🍡', '🥤'];
+export const MAX_SHOPS = FOOD.length;
 
 const NEON = [0xff2d95, 0xffd21f, 0x21c8ff, 0x37e36b, 0xff7a1a, 0xb14dff];
 
@@ -107,10 +108,13 @@ export function buildStage(scene, opts = {}) {
   // บูทของกิน: เรียงเฉียงเป็นรูปตัว V บานออกจากมุมเวที (ร้านในสุดชิดเวที ร้านถัดไปถอยออกด้านข้าง)
   // ลานเต้นตรงกลางจึงกว้างขึ้นเรื่อย ๆ และไม่มีร้านมาบังคนเต้น
   const BOOTH_DX = 1.75, BOOTH_DZ = 2.6; // ยิ่งห่างเวที ร้านยิ่งถ่างออกด้านข้าง
-  const boothX = (k) => TOWER_X - 0.6 + k * BOOTH_DX;
+  // ถ่างออกเร็วช่วง 3 ร้านแรกของแต่ละฝั่ง จากนั้นถ่างออกช้าลง (กล้องจะได้ไม่ต้องถอยไกลเมื่อมีร้านเยอะ)
+  const boothX = (k) => TOWER_X - 0.6 + Math.min(k, 2) * BOOTH_DX + Math.max(0, k - 2) * 0.7;
   const boothZ = (k) => 3.0 + k * BOOTH_DZ;
   // ครึ่งความกว้างที่กล้องต้องเห็นครบ (ต้องเห็นทั้งลำโพง และร้านนอกสุด)
-  const VIEW = Math.max(TOWER_X + 3.5, ((boothX(2) + 0.3) / 0.283 + boothZ(2) + 1) * TAN_H);
+  const N_SHOPS = Math.min(MAX_SHOPS, (opts.shops || []).length); // จำนวนร้าน (เพิ่ม/ลดได้)
+  const K_MAX = Math.ceil(N_SHOPS / 2) - 1; // ลำดับร้านนอกสุดของแต่ละฝั่ง (-1 = ไม่มีร้าน)
+  const VIEW = Math.max(TOWER_X + 3.5, K_MAX < 0 ? 0 : ((boothX(Math.min(K_MAX, 2)) + 0.3) / 0.283 + boothZ(Math.min(K_MAX, 2)) + 1) * TAN_H);
   const CAM_Z = -1 + VIEW / TAN_H; // ตำแหน่งกล้องอัตโนมัติ (จอแนวตั้ง)
   const root = new THREE.Group();
   scene.add(root);
@@ -570,7 +574,7 @@ export function buildStage(scene, opts = {}) {
   const balloons = [];
   const vendors = [];
   const booths = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < N_SHOPS; i++) {
     const side = i % 2 ? 1 : -1;
     const k = Math.floor(i / 2);
     const z = boothZ(k);
@@ -580,7 +584,7 @@ export function buildStage(scene, opts = {}) {
     g.position.set(x, 0, z);
     g.rotation.y = rot;
     root.add(g);
-    const [a, b] = stallCols[i];
+    const [a, b] = stallCols[i % stallCols.length];
     add(roofGeo, basic(0xc8c8c8, { map: stripe(a, b) }), 0, 2.55, 0, g);
     for (const [px, pz] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]]) add(poleGeo, poleM, px, 1.05, pz, g);
     add(counterGeo, woodM, 0, 0.45, 0.85, g);
@@ -841,8 +845,8 @@ export function buildStage(scene, opts = {}) {
   const groundRows = []; // แถวของแต่ละตำแหน่ง (0 = หน้าสุดติดเวที)
   for (let z = 2.9, row = 0; groundSlots.length < 33 && row < 9; z += rowStep, row++) {
     // ช่วงที่มีร้าน: กว้างได้ถึงแนวร้าน / พ้นแนวร้านแล้ว: ใช้ได้เต็มความกว้างจอ
-    const lineX = TOWER_X - 0.6 + ((z - 3.0) / BOOTH_DZ) * BOOTH_DX;
-    const half = Math.min(edge(z) - 1.3, z < boothZ(2) + 2 ? lineX - 2.3 : 99);
+    const lineX = boothX(Math.max(0, (z - 3.0) / BOOTH_DZ));
+    const half = Math.min(edge(z) - 1.3, K_MAX >= 0 && z < boothZ(K_MAX) + 2 ? lineX - 2.3 : 99);
     const n = Math.min(7, Math.max(2, Math.floor((half * 2) / 1.55) + 1));
     for (let i = 0; i < n && groundSlots.length < 33; i++) {
       const x = (i - (n - 1) / 2) * 1.55 + (row % 2 ? 0.3 : -0.3);

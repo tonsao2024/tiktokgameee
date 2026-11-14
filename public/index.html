@@ -95,15 +95,10 @@
           </select>
         </label>
         <p class="hint">พิมพ์ชื่อร้านเองได้ หรือแตะช่องแล้วเลือกชื่อบัญชีผู้ชมที่อยู่ในไลฟ์ตอนนี้ (เว้นว่าง = "ร้านว่าง ให้เช่า")</p>
-        <div class="shops">
-          <label>🥗 ร้าน 1 (ซ้ายหน้า)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-          <label>🍗 ร้าน 2 (ขวาหน้า)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-          <label>🍢 ร้าน 3 (ซ้ายกลาง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-          <label>🍧 ร้าน 4 (ขวากลาง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-          <label>🍙 ร้าน 5 (ซ้ายหลัง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-          <label>🧋 ร้าน 6 (ขวาหลัง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
-        </div>
-        <datalist id="viewerNames"></datalist>
+        <div class="shops" id="shopList"></div>
+          <button type="button" id="btnAddShop">＋ เพิ่มร้าน</button>
+          <p class="hint">มีได้ 0–10 ร้าน เรียงสลับซ้าย-ขวา ร้านเลขน้อยอยู่ใกล้เวที กด ✕ เพื่อลบร้านนั้น</p>
+          <datalist id="viewerNames"></datalist>
         </section>
 
         <section data-tab="chars" hidden>

@@ -70,14 +70,16 @@ function clamp(v, a, b) {
 // จำนวนคนบนเวทีสูงสุดตามความกว้างเวที (2 แถว) — สูตรเดียวกับ public/stage.js
 const maxStage = () => Math.max(3, Math.floor((cfg.stageWidth - 2) / 1.7) + 1) * 2;
 cfg.stageSize = clamp(cfg.stageSize, 1, maxStage());
-if (!Array.isArray(cfg.shops) || cfg.shops.length !== 6) cfg.shops = ['', '', '', '', '', ''];
+const MAX_SHOPS = 10; // เพิ่ม/ลดจำนวนร้านได้ 0–10
+if (!Array.isArray(cfg.shops)) cfg.shops = ['', '', '', '', '', ''];
+cfg.shops = cfg.shops.slice(0, MAX_SHOPS).map((x) => String(x || ''));
 
 // ยอดของขวัญสะสมของแต่ละบัญชี (ใช้จัดชื่อร้านอัตโนมัติ)
 /** @type {Map<string, {name: string, diamonds: number}>} */
 const gifters = new Map();
 function shopNames() {
   if (cfg.shopMode !== 'gift') return cfg.shops;
-  const top = [...gifters.values()].sort((a, b) => b.diamonds - a.diamonds).slice(0, 6);
+  const top = [...gifters.values()].sort((a, b) => b.diamonds - a.diamonds).slice(0, cfg.shops.length);
   return cfg.shops.map((name, i) => (top[i] ? `ร้าน ${top[i].name}` : name));
 }
 
@@ -102,12 +104,12 @@ function clearRoom() {
   memory.clear();
 }
 
-function touch(u, pts = 0) {
+function touch(u, pts = 0, strong = false) {
   if (!u || !u.id) return null;
   const now = Date.now();
   let v = viewers.get(u.id);
   if (!v) {
-    makeRoom();
+    if (!makeRoom(strong || memory.has(u.id))) return null; // ฉากเต็มและทุกคนมีส่วนร่วมแล้ว: รอให้กดใจก่อน
     v = {
       id: u.id,
       name: u.name || u.id,
@@ -136,16 +138,21 @@ function touch(u, pts = 0) {
   return v;
 }
 
-// ถ้าเต็มแล้ว ให้คนที่เงียบนานที่สุดในลานล่างหายไปก่อน เพื่อให้คนใหม่ได้เข้า
-function makeRoom() {
+// ถ้าฉากเต็ม: ให้คนในลานล่างที่ "ยังไม่เคยกดใจ/ส่งของขวัญ" และเงียบนานสุดหายไปก่อน
+// คนใหม่ที่แค่เข้ามาดู (strong = false) จะไม่ไล่คนที่กดใจ/ส่งของขวัญแล้วออก
+function makeRoom(strong) {
   const max = cfg.stageSize + cfg.groundSize;
-  if (viewers.size < max) return;
+  if (viewers.size < max) return true;
   let worst = null;
+  const rank = (v) => (v.gifts > 0 ? 2 : v.likes > 0 ? 1 : 0);
   for (const v of viewers.values()) {
     if (v.onStage) continue;
-    if (!worst || v.lastActive < worst.lastActive) worst = v;
+    if (!worst || rank(v) < rank(worst) || (rank(v) === rank(worst) && (rank(v) === 1 ? v.likes < worst.likes : v.lastActive < worst.lastActive))) worst = v;
   }
-  if (worst) drop(worst);
+  if (!worst) return false;
+  if (!strong && rank(worst) > 0) return false;
+  drop(worst);
+  return true;
 }
 
 function tick() {
@@ -223,7 +230,12 @@ function broadcast(obj) {
   const msg = JSON.stringify(obj);
   for (const c of wss.clients) if (c.readyState === 1) c.send(msg);
 }
+// เอฟเฟกต์บนจอ: จำกัดไม่เกิน 40 ครั้งต่อวินาที กันเบราว์เซอร์ค้างเมื่อห้องคนเยอะมาก (ยอดยังนับครบ)
+let fxCount = 0;
+setInterval(() => (fxCount = 0), 1000);
 function fx(id, kind, n) {
+  if (kind !== 'gift' && ++fxCount > 40) return;
+  if (!viewers.has(id)) return;
   broadcast({ t: 'fx', id, kind, n });
 }
 
@@ -231,7 +243,7 @@ function fx(id, kind, n) {
 const on = {
   join: (u) => touch(u),
   like: (u, n = 1) => {
-    const v = touch(u, Math.min(n, 30) * cfg.ptsLike);
+    const v = touch(u, Math.min(n, 30) * cfg.ptsLike, true);
     if (!v) return;
     v.likes += n;
     fx(u.id, 'like', n);
@@ -246,7 +258,7 @@ const on = {
     if (touch(u, cfg.ptsShare)) fx(u.id, 'share');
   },
   gift: (u, diamonds = 1) => {
-    const v = touch(u, diamonds * cfg.ptsDiamond);
+    const v = touch(u, diamonds * cfg.ptsDiamond, true);
     if (!v) return;
     const g = gifters.get(v.id) || { name: v.name, diamonds: 0 };
     g.name = v.name;
@@ -261,18 +273,31 @@ const on = {
 let conn = null;
 let reconnectTimer = null;
 
+// ข้อมูลผู้ใช้จาก TikTok (รองรับทั้งรูปแบบใหม่ v3: id/displayId/avatarThumb และรูปแบบเก่า: userId/uniqueId/profilePicture)
 function pickUser(data) {
   const u = (data && data.user) || data || {};
-  const id = u.uniqueId || u.userId || u.id;
-  if (!id) return null;
-  const pic =
-    u.avatarThumb || u.avatarMedium || u.avatarLarge || u.profilePicture || {};
+  const id = u.id || u.userId || u.uniqueId || u.displayId;
+  if (!id || String(id) === '0') return null;
+  const pic = u.avatarThumb || u.avatarMedium || u.avatarLarge || u.profilePicture || u.profilePictureMedium || {};
   const list = pic.urlList || pic.urls || pic.url || [];
   const avatar =
     (Array.isArray(list) ? list.find((x) => /\.(webp|jpe?g|png)/i.test(x)) || list[0] : list) ||
     u.profilePictureUrl ||
     '';
-  return { id: String(id), name: u.nickname || String(id), avatar: String(avatar || '') };
+  return { id: String(id), name: u.nickname || u.displayId || u.uniqueId || String(id), avatar: String(avatar || '') };
+}
+// จำนวนใจในข้อความกดใจ 1 ชุด (v3 ใช้ count, รุ่นเก่าใช้ likeCount)
+function likeCount(d) {
+  return clamp(Math.round(Number(d.count ?? d.likeCount)) || 1, 1, 500);
+}
+// เหรียญของของขวัญ: คืน 0 ถ้าเป็นคอมโบที่ยังกดไม่จบ (รอนับครั้งเดียวตอนจบ)
+function giftDiamonds(d) {
+  const g = d.gift || d.giftDetails || d.extendedGiftInfo || {};
+  const type = g.type ?? g.giftType ?? d.giftType;
+  const combo = type === 1 || g.combo === true;
+  if (combo && !Number(d.repeatEnd)) return 0;
+  const each = Number(g.diamondCount ?? d.diamondCount) || 1;
+  return each * (Number(d.repeatCount) || 1);
 }
 
 function disconnectTikTok() {
@@ -330,17 +355,15 @@ function connectTikTok(username, keep = false) {
 
   c.on(WebcastEvent.MEMBER, safe((u) => on.join(u)));
   c.on(WebcastEvent.CHAT, safe((u) => on.chat(u)));
-  c.on(WebcastEvent.LIKE, safe((u, d) => on.like(u, Number(d.likeCount) || 1)));
+  c.on(WebcastEvent.LIKE, safe((u, d) => on.like(u, likeCount(d))));
   c.on(WebcastEvent.FOLLOW, safe((u) => on.follow(u)));
   c.on(WebcastEvent.SHARE, safe((u) => on.share(u)));
   c.on(
     WebcastEvent.GIFT,
     safe((u, d) => {
-      const g = d.giftDetails || d.gift || d.extendedGiftInfo || {};
-      const type = g.giftType ?? d.giftType;
-      if (type === 1 && !d.repeatEnd) return on.join(u); // คอมโบยังไม่จบ รอให้จบก่อนค่อยนับ
-      const diamonds = (Number(g.diamondCount ?? d.diamondCount) || 1) * (Number(d.repeatCount) || 1);
-      on.gift(u, diamonds);
+      const diamonds = giftDiamonds(d);
+      if (diamonds > 0) on.gift(u, diamonds);
+      else on.join(u); // คอมโบยังไม่จบ รอให้จบก่อนค่อยนับ
     })
   );
   c.on(WebcastEvent.STREAM_END, () => retry('ไลฟ์จบแล้ว'));
@@ -545,7 +568,7 @@ function handleApi(req, res, url) {
         if (typeof data.title === 'string') cfg.title = data.title.replace(/\s+/g, ' ').trim().slice(0, 80);
         if (data.stageWidth) cfg.stageWidth = clamp(Math.round(+data.stageWidth * 2) / 2 || 13, 8, 22);
         if (['kanok', 'naga', 'diamond', 'moon'].includes(data.theme)) cfg.theme = data.theme;
-        if (Array.isArray(data.shops)) cfg.shops = cfg.shops.map((old, i) => (typeof data.shops[i] === 'string' ? data.shops[i].replace(/\s+/g, ' ').trim().slice(0, 40) : old));
+        if (Array.isArray(data.shops)) cfg.shops = data.shops.slice(0, MAX_SHOPS).map((x) => String(x == null ? '' : x).replace(/\s+/g, ' ').trim().slice(0, 40));
         if (['manual', 'gift'].includes(data.shopMode)) cfg.shopMode = data.shopMode;
         if (data.stageSize) cfg.stageSize = Math.round(+data.stageSize) || 10;
         cfg.stageSize = clamp(cfg.stageSize, 1, maxStage());
@@ -568,6 +591,10 @@ function handleApi(req, res, url) {
     json(200, { ok: true, source, cfg });
   });
 }
+
+// กันโปรแกรมดับกลางไลฟ์เพราะข้อผิดพลาดที่ไม่คาดคิดจากตัวเชื่อมต่อ
+process.on('uncaughtException', (e) => console.error('[error]', e));
+process.on('unhandledRejection', (e) => console.error('[error]', e));
 
 // ---------- เริ่มทำงาน ----------
 setInterval(tick, 1000);

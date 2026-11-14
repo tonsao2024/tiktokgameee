@@ -4,7 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildStage, THEMES } from './stage.js';
+import { buildStage, THEMES, FOOD, MAX_SHOPS } from './stage.js';
 import { Character, updateEffects } from './character.js';
 
 const params = new URLSearchParams(location.search);
@@ -294,7 +294,7 @@ function arrangeGround(list) {
 let firstState = true;
 function applyState(msg) {
   const c = msg.cfg;
-  if (c.stageWidth && (c.stageWidth !== stageOpts.width || c.theme !== stageOpts.theme)) {
+  if (c.stageWidth && (c.stageWidth !== stageOpts.width || c.theme !== stageOpts.theme || c.shops.length !== stageOpts.shops.length)) {
     rebuildStage({ width: c.stageWidth, theme: c.theme, shops: c.shops });
   }
   stage.setShops(c.shops);
@@ -609,7 +609,7 @@ async function openPanel(open) {
   $('widthVal').textContent = s.cfg.stageWidth;
   $('stageSize').max = s.maxStage;
   $('maxStage').textContent = s.maxStage;
-  shopInputs.forEach((el, i) => (el.value = s.cfg.shops[i] || ''));
+  renderShops(s.cfg.shops);
   $('picVal').textContent = s.cfg.picSize;
   setKeyState(s.hasKey);
   updatePanelStatus(s.source);
@@ -676,9 +676,44 @@ $('stageWidth').onchange = async () => {
   $('stageSize').value = s.cfg.stageSize;
   $('maxStage').textContent = s.maxStage;
 };
-const shopInputs = [...document.querySelectorAll('.shop')];
-const saveShops = () => api('/api/config', { shops: shopInputs.map((el) => el.value) });
-shopInputs.forEach((el) => (el.onchange = saveShops));
+// รายการร้าน: เพิ่ม/ลดได้ แก้ชื่อแล้วบันทึกอัตโนมัติ
+let shopList = [];
+const saveShops = () => api('/api/config', { shops: shopList });
+function renderShops(list) {
+  shopList = [...list];
+  const rows = shopList.map((name, i) => {
+    const label = document.createElement('label');
+    label.append(`${FOOD[i]} ร้าน ${i + 1} (${i % 2 ? 'ขวา' : 'ซ้าย'})`);
+    const row = document.createElement('div');
+    row.className = 'row';
+    const input = document.createElement('input');
+    Object.assign(input, { className: 'shop', maxLength: 40, autocomplete: 'off', value: name });
+    input.setAttribute('list', 'viewerNames');
+    input.onchange = () => {
+      shopList[i] = input.value;
+      saveShops();
+    };
+    const del = document.createElement('button');
+    Object.assign(del, { type: 'button', className: 'del', textContent: '✕', title: 'ลบร้านนี้' });
+    del.onclick = () => {
+      shopList.splice(i, 1);
+      renderShops(shopList);
+      saveShops();
+    };
+    row.append(input, del);
+    label.append(row);
+    return label;
+  });
+  $('shopList').replaceChildren(...rows);
+  $('btnAddShop').disabled = shopList.length >= MAX_SHOPS;
+  $('btnAddShop').textContent = shopList.length >= MAX_SHOPS ? `ครบ ${MAX_SHOPS} ร้านแล้ว` : `＋ เพิ่มร้าน (ตอนนี้ ${shopList.length} ร้าน)`;
+}
+$('btnAddShop').onclick = () => {
+  if (shopList.length >= MAX_SHOPS) return;
+  shopList.push('');
+  renderShops(shopList);
+  saveShops();
+};
 $('shopMode').onchange = () => api('/api/config', { shopMode: $('shopMode').value });
 
 // เปลี่ยนชื่อป้าย / ขนาดรูป แล้วเห็นผลทันที
