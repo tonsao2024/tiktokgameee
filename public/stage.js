@@ -106,10 +106,11 @@ export function buildStage(scene, opts = {}) {
   const TRUSS_Y = STAGE_Y + 6.4 * S;
   // บูทของกิน: เรียงเฉียงเป็นรูปตัว V บานออกจากมุมเวที (ร้านในสุดชิดเวที ร้านถัดไปถอยออกด้านข้าง)
   // ลานเต้นตรงกลางจึงกว้างขึ้นเรื่อย ๆ และไม่มีร้านมาบังคนเต้น
-  const boothX = (k) => TOWER_X - 0.3 + k * 0.85;
-  const boothZ = (k) => 3.2 + k * 2.9;
+  const BOOTH_DX = 1.75, BOOTH_DZ = 2.6; // ยิ่งห่างเวที ร้านยิ่งถ่างออกด้านข้าง
+  const boothX = (k) => TOWER_X - 0.6 + k * BOOTH_DX;
+  const boothZ = (k) => 3.0 + k * BOOTH_DZ;
   // ครึ่งความกว้างที่กล้องต้องเห็นครบ (ต้องเห็นทั้งลำโพง และร้านนอกสุด)
-  const VIEW = Math.max(TOWER_X + 3.5, ((boothX(2) + 1.0) / 0.283 + boothZ(2) + 1) * TAN_H);
+  const VIEW = Math.max(TOWER_X + 3.5, ((boothX(2) + 0.3) / 0.283 + boothZ(2) + 1) * TAN_H);
   const CAM_Z = -1 + VIEW / TAN_H; // ตำแหน่งกล้องอัตโนมัติ (จอแนวตั้ง)
   const root = new THREE.Group();
   scene.add(root);
@@ -574,7 +575,7 @@ export function buildStage(scene, opts = {}) {
     const k = Math.floor(i / 2);
     const z = boothZ(k);
     const x = side * boothX(k);
-    const rot = -side * 0.8; // หันเฉียงเข้าหาลานเต้นและกล้อง
+    const rot = -side * 0.62; // หันเฉียงเข้าหาลานเต้นและกล้อง
     const g = new THREE.Group();
     g.position.set(x, 0, z);
     g.rotation.y = rot;
@@ -686,6 +687,67 @@ export function buildStage(scene, opts = {}) {
     }
     add(new THREE.SphereGeometry(0.5, 12, 8), basic(0xffd21f), 0, 0, 0, wheel);
   }
+  // ---------- วัดและเจดีย์ด้านหลังเวที ----------
+  {
+    const gold = new THREE.MeshLambertMaterial({ color: 0xf2c230, emissive: 0x7a5200, fog: false });
+    const white = new THREE.MeshLambertMaterial({ color: 0xfff4e0, emissive: 0x5a4a3a, fog: false });
+    const roofM = new THREE.MeshLambertMaterial({ color: 0xd9541e, emissive: 0x5a1a08, fog: false, side: THREE.DoubleSide });
+    const greenM = new THREE.MeshLambertMaterial({ color: 0x1f8a4a, emissive: 0x0a3a1a, fog: false, side: THREE.DoubleSide });
+    const redM = new THREE.MeshLambertMaterial({ color: 0xa3161c, emissive: 0x400808, fog: false });
+    const glow = basic(0xffd98a, { fog: false });
+    // เจดีย์ทรงระฆัง
+    const chedi = (x, z, k) => {
+      const pts = [[6, 0], [6, 1], [5.2, 1], [5.2, 2], [4.4, 2], [4.4, 3], [3.7, 3.2], [3.5, 5], [3.0, 7], [2.2, 8.6], [1.2, 9.6], [1.2, 10.4], [0.9, 10.4], [0.75, 12], [0.45, 15], [0.15, 19], [0, 20]]
+        .map(([r, y]) => new THREE.Vector2(r, y));
+      const m = add(new THREE.LatheGeometry(pts, 20), gold, x, 0, z);
+      m.scale.setScalar(k);
+      const cloth = add(new THREE.TorusGeometry(3.75 * k, 0.16 * k, 6, 24), basic(0xff7a1a, { fog: false }), x, 3.4 * k, z);
+      cloth.rotation.x = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.3 * k, 8, 6), glow, x, 20.1 * k, z);
+      // ไฟประดับรอบฐาน
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        add(new THREE.SphereGeometry(0.14 * k, 6, 5), glow, x + Math.cos(a) * 6.1 * k, 1.1 * k, z + Math.sin(a) * 6.1 * k);
+      }
+    };
+    const bz = Z_BACK - 22;
+    chedi(HALF_W + 3, bz, 1.9);
+    chedi(HALF_W + 13, bz + 5, 0.75);
+    chedi(HALF_W - 4.5, bz - 6, 0.65);
+    // โบสถ์ หลังคาซ้อนชั้น มีช่อฟ้า
+    const t = new THREE.Group();
+    t.position.set(-(HALF_W + 3), 0, bz - 2);
+    t.scale.setScalar(1.6);
+    root.add(t);
+    add(new THREE.BoxGeometry(17, 1.2, 13), white, 0, 0.6, 0, t);
+    add(new THREE.BoxGeometry(14, 6.5, 10), white, 0, 4.4, 0, t);
+    for (let i = 0; i < 5; i++) add(new THREE.BoxGeometry(0.8, 6.5, 0.8), redM, -6.4 + i * 3.2, 4.4, 5.6, t);
+    add(new THREE.PlaneGeometry(2.6, 4.4), glow, 0, 3.4, 5.03, t);
+    for (const x of [-4.4, 4.4]) add(new THREE.PlaneGeometry(1.3, 2.6), glow, x, 4.4, 5.03, t);
+    const prism = (w, h, len) => {
+      const sh = new THREE.Shape();
+      sh.moveTo(-w / 2, 0);
+      sh.lineTo(0, h);
+      sh.lineTo(w / 2, 0);
+      sh.closePath();
+      return new THREE.ExtrudeGeometry(sh, { depth: len, bevelEnabled: false }).translate(0, 0, -len / 2);
+    };
+    const chofaGeo = new THREE.ConeGeometry(0.22, 3, 6).translate(0, 1.5, 0);
+    [[19, 5.6, 14.5, 7.4], [15, 5.2, 11.5, 9.6], [11, 4.8, 8.5, 11.8]].forEach(([w, h, len, y], i) => {
+      add(prism(w + 0.8, h + 0.3, len - 0.6), greenM, 0, y - 0.25, 0, t);
+      add(prism(w, h, len), roofM, 0, y, 0, t);
+      add(prism(w * 0.72, h * 0.72, 0.1), gold, 0, y + 0.1, len / 2 + 0.06, t); // หน้าบันสีทอง
+      for (const sz of [-1, 1]) {
+        const c = add(chofaGeo, gold, 0, y + h - 0.1, sz * (len / 2), t);
+        c.rotation.x = sz * 0.45;
+        for (const sx of [-1, 1]) {
+          const hang = add(chofaGeo, gold, sx * (w / 2), y, sz * (len / 2), t);
+          hang.scale.setScalar(0.55);
+          hang.rotation.z = -sx * 0.9;
+        }
+      }
+    });
+  }
   // ต้นไม้
   {
     const trunk = new THREE.CylinderGeometry(0.22, 0.3, 2.4, 6);
@@ -779,7 +841,7 @@ export function buildStage(scene, opts = {}) {
   const groundRows = []; // แถวของแต่ละตำแหน่ง (0 = หน้าสุดติดเวที)
   for (let z = 2.9, row = 0; groundSlots.length < 33 && row < 9; z += rowStep, row++) {
     // ช่วงที่มีร้าน: กว้างได้ถึงแนวร้าน / พ้นแนวร้านแล้ว: ใช้ได้เต็มความกว้างจอ
-    const lineX = TOWER_X - 0.3 + ((z - 3.2) / 2.9) * 0.85;
+    const lineX = TOWER_X - 0.6 + ((z - 3.0) / BOOTH_DZ) * BOOTH_DX;
     const half = Math.min(edge(z) - 1.3, z < boothZ(2) + 2 ? lineX - 2.3 : 99);
     const n = Math.min(7, Math.max(2, Math.floor((half * 2) / 1.55) + 1));
     for (let i = 0; i < n && groundSlots.length < 33; i++) {
