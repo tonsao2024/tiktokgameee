@@ -35,6 +35,7 @@ const cfg = {
 
 // มุมกล้อง (null = อัตโนมัติ) ใช้ร่วมกันทุกหน้าจอ เพื่อปรับจากเครื่องอื่นแล้วจอไลฟ์เปลี่ยนตาม
 let cam = null;
+let eulerKey = process.env.EULER_API_KEY || ''; // คีย์ Euler Stream (ถ้ามี)
 let lastUser = ''; // ชื่อผู้ใช้ TikTok ที่เชื่อมต่อล่าสุด (จำไว้เติมให้ในแผง)
 let camRev = 0;
 
@@ -46,12 +47,13 @@ try {
   for (const k of SAVE_KEYS) if (saved[k] != null) cfg[k] = saved[k];
   if (validCam(saved.cam)) cam = saved.cam;
   if (typeof saved.username === 'string') lastUser = saved.username;
+  if (typeof saved.eulerKey === 'string' && saved.eulerKey) eulerKey = saved.eulerKey;
 } catch {}
 let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const out = { cam, username: lastUser };
+    const out = { cam, username: lastUser, eulerKey };
     for (const k of SAVE_KEYS) out[k] = cfg[k];
     fs.writeFile(SAVE_FILE, JSON.stringify(out, null, 2), () => {});
   }, 500);
@@ -84,6 +86,22 @@ function shopNames() {
 const viewers = new Map();
 let source = { mode: 'idle', username: '', status: 'ยังไม่ได้เชื่อมต่อ' };
 
+// จำยอดใจ/ของขวัญของคนที่หายไปจากฉาก กลับมาในไลฟ์เดียวกันได้ยอดเดิม
+const memory = new Map();
+let connected = false; // ต่อกับห้องไลฟ์อยู่จริงหรือไม่
+function drop(v) {
+  viewers.delete(v.id);
+  if (v.likes || v.gifts) {
+    if (memory.size >= 5000) memory.delete(memory.keys().next().value);
+    memory.set(v.id, { likes: v.likes, gifts: v.gifts });
+  }
+}
+function clearRoom() {
+  viewers.clear();
+  gifters.clear();
+  memory.clear();
+}
+
 function touch(u, pts = 0) {
   if (!u || !u.id) return null;
   const now = Date.now();
@@ -102,6 +120,12 @@ function touch(u, pts = 0) {
       lastActive: now,
       onStage: false,
     };
+    const old = memory.get(v.id);
+    if (old) {
+      v.likes = old.likes;
+      v.gifts = old.gifts;
+      memory.delete(v.id);
+    }
     viewers.set(v.id, v);
   } else {
     if (u.name) v.name = u.name;
@@ -121,14 +145,16 @@ function makeRoom() {
     if (v.onStage) continue;
     if (!worst || v.lastActive < worst.lastActive) worst = v;
   }
-  if (worst) viewers.delete(worst.id);
+  if (worst) drop(worst);
 }
 
 function tick() {
   const now = Date.now();
   // 1) คะแนนจากเวลาดู + ลบคนที่ไม่ดูต่อ
+  // ระหว่างที่การเชื่อมต่อไลฟ์หลุด ไม่มีข้อมูลเข้ามา จึงยังไม่ตัดใครออก
+  const paused = source.mode === 'tiktok' && !connected;
   for (const v of viewers.values()) {
-    if (now - v.lastActive > cfg.idleTimeout * 1000) viewers.delete(v.id);
+    if (!paused && now - v.lastActive > cfg.idleTimeout * 1000) drop(v);
     else v.score += cfg.ptsPerSecond;
   }
   // 2) จัดคนขึ้นเวที — แบ่งโควต้าครึ่ง ๆ: สายของขวัญครึ่งหนึ่ง สายกดใจครึ่งหนึ่ง
@@ -251,6 +277,7 @@ function pickUser(data) {
 
 function disconnectTikTok() {
   clearTimeout(reconnectTimer);
+  connected = false;
   if (conn) {
     try {
       conn.removeAllListeners();
@@ -260,13 +287,15 @@ function disconnectTikTok() {
   }
 }
 
-function connectTikTok(username) {
+function connectTikTok(username, keep = false) {
+  username = String(username || '').trim().replace(/^@/, '');
+  const same = source.mode === 'tiktok' && source.username === username;
   disconnectTikTok();
   stopDemo();
-  username = String(username || '').trim().replace(/^@/, '');
   if (!username) return;
-  viewers.clear();
-  gifters.clear();
+  // ต่อใหม่กับห้องเดิม (เน็ตหลุด/กดเชื่อมต่อซ้ำ) = เก็บผู้ชมและยอดเดิมไว้
+  if (!(keep || same)) clearRoom();
+  connected = false;
   source = { mode: 'tiktok', username, status: 'กำลังเชื่อมต่อ…' };
   lastUser = username;
   save();
@@ -280,7 +309,7 @@ function connectTikTok(username) {
   }
   const { TikTokLiveConnection, WebcastEvent, ControlEvent } = lib;
   const opts = {};
-  if (process.env.EULER_API_KEY) opts.signApiKey = process.env.EULER_API_KEY;
+  if (eulerKey) opts.signApiKey = eulerKey;
   const c = (conn = new TikTokLiveConnection(username, opts));
   const safe = (fn) => (data) => {
     try {
@@ -292,10 +321,11 @@ function connectTikTok(username) {
   };
   const retry = (why) => {
     if (conn !== c) return;
+    connected = false;
     source.status = `${why} — จะลองใหม่ใน 15 วินาที`;
     console.log('[tiktok]', source.status);
     clearTimeout(reconnectTimer);
-    reconnectTimer = setTimeout(() => conn === c && connectTikTok(username), 15000);
+    reconnectTimer = setTimeout(() => conn === c && connectTikTok(username, true), 15000);
   };
 
   c.on(WebcastEvent.MEMBER, safe((u) => on.join(u)));
@@ -320,6 +350,9 @@ function connectTikTok(username) {
   c.connect()
     .then((state) => {
       if (conn !== c) return;
+      connected = true;
+      const now = Date.now();
+      for (const v of viewers.values()) v.lastActive = now; // เริ่มนับเวลาเงียบใหม่หลังต่อกลับมา
       source.status = `เชื่อมต่อแล้ว (ห้อง ${state.roomId})`;
       console.log('[tiktok] connected', username, state.roomId);
     })
@@ -387,8 +420,7 @@ function setAuto(flag) {
 function startTest(auto = true) {
   disconnectTikTok();
   stopDemo();
-  viewers.clear();
-  gifters.clear();
+  clearRoom();
   source = { mode: 'test', username: '', auto: false, status: '' };
   setAuto(auto);
 }
@@ -396,8 +428,7 @@ function startTest(auto = true) {
 function goLive() {
   disconnectTikTok();
   stopDemo();
-  viewers.clear();
-  gifters.clear();
+  clearRoom();
   source = { mode: 'idle', username: '', status: 'โหมดรันจริง: ยังไม่ได้เชื่อมต่อ' };
 }
 // จำลองเหตุการณ์ทีละคนจากแท็บทดสอบ
@@ -412,7 +443,7 @@ function testAction(data) {
     case 'follow': on.follow(u); break;
     case 'share': on.share(u); break;
     case 'gift': on.gift(u, clamp(Math.round(+data.diamonds) || 1, 1, 50000) * n); break;
-    case 'leave': viewers.delete(u.id); break;
+    case 'leave': { const v = viewers.get(u.id); if (v) drop(v); break; }
     default: return false;
   }
   return true;
@@ -470,7 +501,7 @@ function handleApi(req, res, url) {
     res.end(JSON.stringify(obj));
   };
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size, username: lastUser });
+    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size, username: lastUser, hasKey: !!eulerKey });
   }
   if (req.method !== 'POST') return json(405, { error: 'method' });
   let body = '';
@@ -506,10 +537,11 @@ function handleApi(req, res, url) {
       case '/api/stop':
         disconnectTikTok();
         stopDemo();
-        viewers.clear();
+        clearRoom();
         source = { mode: 'idle', username: '', status: 'โหมดรันจริง: หยุดแล้ว' };
         break;
       case '/api/config':
+        if (typeof data.eulerKey === 'string') eulerKey = data.eulerKey.trim().slice(0, 200);
         if (typeof data.title === 'string') cfg.title = data.title.replace(/\s+/g, ' ').trim().slice(0, 80);
         if (data.stageWidth) cfg.stageWidth = clamp(Math.round(+data.stageWidth * 2) / 2 || 13, 8, 22);
         if (['kanok', 'naga', 'diamond', 'moon'].includes(data.theme)) cfg.theme = data.theme;

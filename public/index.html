@@ -54,6 +54,13 @@
               <button type="button" id="btnConnect" class="primary">เชื่อมต่อไลฟ์</button>
               <button type="button" id="btnStop">หยุด</button>
             </div>
+            <label>คีย์ Euler Stream (ไม่บังคับ ใส่เมื่อเชื่อมต่อไม่ผ่านเพราะโควตาฟรีหมด)
+              <input id="eulerKey" type="password" autocomplete="off" placeholder="วางคีย์ที่นี่" />
+            </label>
+            <div class="row">
+              <span id="keyState" class="hint"></span>
+              <button type="button" id="btnKeyClear">ลบคีย์</button>
+            </div>
             <p class="hint">ต้องเริ่มไลฟ์ใน TikTok ก่อนแล้วค่อยกดเชื่อมต่อ • ตอนไลฟ์ใช้ลิงก์ <b>/?clean=1</b> ใน LIVE Studio (ไม่มีแผงและปุ่ม)</p>
           </div>
           <div id="testBox">

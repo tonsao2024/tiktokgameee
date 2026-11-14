@@ -611,8 +611,24 @@ async function openPanel(open) {
   $('maxStage').textContent = s.maxStage;
   shopInputs.forEach((el, i) => (el.value = s.cfg.shops[i] || ''));
   $('picVal').textContent = s.cfg.picSize;
+  setKeyState(s.hasKey);
   updatePanelStatus(s.source);
 }
+function setKeyState(has) {
+  $('keyState').textContent = has ? '🔑 มีคีย์บันทึกไว้แล้ว' : 'ยังไม่ได้ใส่คีย์ (ใช้โควตาฟรี)';
+  $('btnKeyClear').hidden = !has;
+}
+$('eulerKey').onchange = async () => {
+  const v = $('eulerKey').value.trim();
+  if (!v) return;
+  await api('/api/config', { eulerKey: v });
+  $('eulerKey').value = '';
+  setKeyState(true);
+};
+$('btnKeyClear').onclick = async () => {
+  await api('/api/config', { eulerKey: '' });
+  setKeyState(false);
+};
 $('gear').onclick = () => openPanel(panel.hidden);
 $('btnClose').onclick = () => openPanel(false);
 // แท็บด้านข้าง
