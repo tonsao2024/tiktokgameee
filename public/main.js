@@ -15,6 +15,7 @@ if (params.get('clean') === '1') document.body.classList.add('clean');
 
 // ---------- ฉาก 3 มิติ ----------
 const canvas = document.getElementById('scene');
+const view = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene();
@@ -54,7 +55,7 @@ function autoCamera() {
   controls.update();
 }
 function resize() {
-  const w = innerWidth, h = innerHeight;
+  const w = view.clientWidth || innerWidth, h = view.clientHeight || innerHeight;
   renderer.setSize(w, h, false);
   if (composer) composer.setSize(w, h);
   camera.aspect = w / h;
@@ -62,6 +63,7 @@ function resize() {
   if (!customCam) autoCamera();
 }
 addEventListener('resize', resize);
+new ResizeObserver(() => resize()).observe(view);
 resize();
 
 let camTimer = null;
@@ -500,7 +502,7 @@ function settle(a) {
 
 function placeTag(a) {
   const root = a.char.root;
-  const hw = innerWidth / 2, hh = innerHeight / 2;
+  const hw = view.clientWidth / 2, hh = view.clientHeight / 2;
   // เท้า
   v3.set(root.position.x, root.position.y, root.position.z).project(camera);
   const fx = v3.x * hw + hw, fy = -v3.y * hh + hh, depth = v3.z;
@@ -569,6 +571,17 @@ function updatePanelStatus(source) {
   if (!source) return;
   const who = source.username ? ` @${source.username}` : '';
   $('status').textContent = `สถานะ:${who} ${source.status}`;
+  const test = source.mode === 'test';
+  $('modeTest').classList.toggle('on', test);
+  $('modeLive').classList.toggle('on', !test);
+  $('liveBox').hidden = test;
+  $('testBox').hidden = !test;
+  $('testSet').disabled = !test;
+  $('testOff').hidden = test;
+  $('tAuto').checked = !!source.auto;
+  const badge = $('modeBadge');
+  badge.textContent = test ? 'ทดสอบ' : 'รันจริง';
+  badge.className = `badge-mode ${test ? 'test' : 'live'}`;
 }
 async function api(path, data, quiet = false) {
   const res = await fetch(path, {
@@ -578,29 +591,57 @@ async function api(path, data, quiet = false) {
   });
   const out = await res.json().catch(() => ({}));
   if (!quiet || !res.ok) {
-    $('msg').textContent = res.ok ? 'บันทึกแล้ว ✔' : `⚠ ${out.error || 'ผิดพลาด'}`;
+    $('msg').textContent = res.ok ? 'เรียบร้อย ✔' : `⚠ ${out.error || 'ผิดพลาด'}`;
     clearTimeout(api.t);
     api.t = setTimeout(() => ($('msg').textContent = ''), 2500);
   }
   return out;
 }
-$('gear').onclick = async () => {
-  panel.hidden = !panel.hidden;
-  if (panel.hidden) return;
+async function openPanel(open) {
+  panel.hidden = !open;
+  document.body.classList.toggle('panel-open', open);
+  if (!open) return;
   const s = await api('/api/status');
   $('msg').textContent = '';
   $('keyRow').hidden = !s.needKey;
-  $('username').value = s.source.username || '';
+  $('username').value = s.source.username || s.username || '';
   for (const k of ['title', 'stageSize', 'idleTimeout', 'minStageSeconds', 'picSize', 'bpm', 'stageWidth', 'theme', 'shopMode']) $(k).value = s.cfg[k];
   $('widthVal').textContent = s.cfg.stageWidth;
   $('stageSize').max = s.maxStage;
   $('maxStage').textContent = s.maxStage;
   shopInputs.forEach((el, i) => (el.value = s.cfg.shops[i] || ''));
   $('picVal').textContent = s.cfg.picSize;
+  updatePanelStatus(s.source);
+}
+$('gear').onclick = () => openPanel(panel.hidden);
+$('btnClose').onclick = () => openPanel(false);
+// แท็บด้านข้าง
+function showTab(name) {
+  for (const b of panel.querySelectorAll('.side [data-tab]')) b.classList.toggle('on', b.dataset.tab === name);
+  for (const sec of panel.querySelectorAll('section[data-tab]')) sec.hidden = sec.dataset.tab !== name;
+}
+for (const b of panel.querySelectorAll('.side [data-tab]')) b.onclick = () => showTab(b.dataset.tab);
+$('goTest').onclick = () => showTab('test');
+// โหมดทดสอบ / โหมดรันจริง
+$('modeTest').onclick = () => {
+  if ($('modeTest').classList.contains('on')) return;
+  api('/api/mode', { mode: 'test' }).then((r) => updatePanelStatus(r.source));
 };
-$('btnClose').onclick = () => (panel.hidden = true);
+$('modeLive').onclick = () => {
+  if ($('modeLive').classList.contains('on')) return;
+  api('/api/mode', { mode: 'live' }).then((r) => updatePanelStatus(r.source));
+};
+for (const b of panel.querySelectorAll('[data-test]')) {
+  b.onclick = () =>
+    api('/api/test', {
+      action: b.dataset.test,
+      name: $('tName').value,
+      n: b.dataset.test === 'gift' ? $('tCount').value : b.dataset.n || 1,
+      diamonds: $('tGift').value,
+    });
+}
+$('tAuto').onchange = () => api('/api/test', { action: 'auto', on: $('tAuto').checked });
 $('btnConnect').onclick = () => api('/api/connect', { username: $('username').value });
-$('btnDemo').onclick = () => api('/api/demo', {});
 $('btnStop').onclick = () => api('/api/stop', {});
 panel.onsubmit = (e) => e.preventDefault();
 // ช่องตัวเลข: แก้แล้วบันทึกอัตโนมัติ
@@ -623,13 +664,6 @@ const saveShops = () => api('/api/config', { shops: shopInputs.map((el) => el.va
 shopInputs.forEach((el) => (el.onchange = saveShops));
 $('shopMode').onchange = () => api('/api/config', { shopMode: $('shopMode').value });
 
-// เปิดได้ทีละหัวข้อ (เผื่อเบราว์เซอร์ที่ไม่รองรับ details name)
-for (const d of panel.querySelectorAll('details')) {
-  d.addEventListener('toggle', () => {
-    if (d.open) for (const o of panel.querySelectorAll('details')) if (o !== d) o.open = false;
-  });
-}
-
 // เปลี่ยนชื่อป้าย / ขนาดรูป แล้วเห็นผลทันที
 let liveTimer = null;
 function liveConfig(data) {
@@ -646,3 +680,6 @@ $('picSize').oninput = () => {
   $('picVal').textContent = picSize;
   liveConfig({ picSize });
 };
+
+// จอกว้าง (คอม): เปิดแผงด้านซ้ายไว้เลย ยกเว้นหน้า ?clean=1 ที่ใช้ออกไลฟ์
+if (!document.body.classList.contains('clean') && innerWidth > 820) openPanel(true);

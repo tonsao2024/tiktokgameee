@@ -15,27 +15,60 @@
     </script>
   </head>
   <body>
-    <canvas id="scene"></canvas>
-    <div id="labels"></div>
-    <div id="toasts"></div>
+    <div id="view">
+      <canvas id="scene"></canvas>
+      <div id="labels"></div>
+      <div id="toasts"></div>
+    </div>
 
     <button id="gear" title="ตั้งค่า" aria-label="ตั้งค่า">⚙</button>
     <form id="panel" hidden>
-      <div class="head">
-        <h2>ตั้งค่าเวที</h2>
-        <button type="button" id="btnClose" aria-label="ปิด">✕</button>
-      </div>
-      <p id="msg" class="status"></p>
+      <nav class="side">
+        <div class="brand">เวทีหมอลำ<br />ออนไลน์</div>
+        <button type="button" data-tab="start" class="on">🚀 เริ่มไลฟ์</button>
+        <button type="button" data-tab="scene">🎪 ป้าย/ฉาก</button>
+        <button type="button" data-tab="shops">🍢 ร้านค้า</button>
+        <button type="button" data-tab="chars">💃 ตัวละคร</button>
+        <button type="button" data-tab="cam">🎥 กล้อง</button>
+        <button type="button" data-tab="test">🧪 ทดสอบ</button>
+        <span class="grow"></span>
+        <span id="modeBadge" class="badge-mode">…</span>
+        <button type="button" id="btnClose">✕ ซ่อนแผง</button>
+      </nav>
+      <div class="body">
+        <p id="msg" class="status"></p>
 
-      <details open name="sec">
-        <summary>🪧 ป้ายชื่อเวที</summary>
+        <section data-tab="start">
+          <h2>🚀 เริ่มไลฟ์</h2>
+          <p class="hint">เลือกโหมดก่อน: ทดสอบ = ผู้ชมจำลอง ไม่ต่อ TikTok • รันจริง = ดึงผู้ชมจากไลฟ์ของคุณ</p>
+          <div class="modes">
+            <button type="button" id="modeTest">🧪 โหมดทดสอบ</button>
+            <button type="button" id="modeLive">🔴 โหมดรันจริง</button>
+          </div>
+          <p id="status" class="status">…</p>
+          <div id="liveBox">
+            <label>ชื่อผู้ใช้ TikTok ที่กำลังไลฟ์
+              <input id="username" placeholder="@username" autocomplete="off" autocapitalize="off" />
+            </label>
+            <div class="row">
+              <button type="button" id="btnConnect" class="primary">เชื่อมต่อไลฟ์</button>
+              <button type="button" id="btnStop">หยุด</button>
+            </div>
+            <p class="hint">ต้องเริ่มไลฟ์ใน TikTok ก่อนแล้วค่อยกดเชื่อมต่อ • ตอนไลฟ์ใช้ลิงก์ <b>/?clean=1</b> ใน LIVE Studio (ไม่มีแผงและปุ่ม)</p>
+          </div>
+          <div id="testBox">
+            <p class="hint">ตอนนี้เป็นผู้ชมจำลองทั้งหมด ไปที่แท็บ "🧪 ทดสอบ" เพื่อกดจำลองคนเข้า ไลก์ ของขวัญ ทีละคน</p>
+            <button type="button" id="goTest">ไปแท็บทดสอบ →</button>
+          </div>
+        </section>
+
+        <section data-tab="scene" hidden>
+          <h2>🎪 ป้ายและฉากเวที</h2>
+
         <label>ข้อความบนป้าย (พิมพ์อะไรก็ได้ ป้ายเปลี่ยนทันที)
           <input id="title" maxlength="80" placeholder="เช่น หมอลำออนไลน์" autocomplete="off" />
         </label>
-      </details>
 
-      <details name="sec">
-        <summary>🎪 ขนาดและฉากเวที</summary>
         <label>ความกว้างเวที <span id="widthVal"></span> เมตร
           <input id="stageWidth" type="range" min="8" max="22" step="0.5" />
         </label>
@@ -43,10 +76,11 @@
           <select id="theme"></select>
         </label>
         <p class="hint">เวทีกว้างขึ้น กล้องจะถอยออกเองให้เห็นครบ (ปรับมุมเองได้ที่หัวข้อมุมกล้อง)</p>
-      </details>
+        </section>
 
-      <details name="sec">
-        <summary>🍢 บูทร้านของกิน</summary>
+        <section data-tab="shops" hidden>
+          <h2>🍢 บูทร้านของกิน</h2>
+
         <label>ที่มาของชื่อร้าน
           <select id="shopMode">
             <option value="manual">ใช้ชื่อที่พิมพ์ด้านล่าง</option>
@@ -63,32 +97,11 @@
           <label>🧋 ร้าน 6 (ขวาหลัง)<input class="shop" list="viewerNames" maxlength="40" autocomplete="off" /></label>
         </div>
         <datalist id="viewerNames"></datalist>
-      </details>
+        </section>
 
-      <details name="sec">
-        <summary>🎥 มุมกล้อง</summary>
-        <p class="hint">ลากนิ้ว/เมาส์บนเวทีเพื่อหมุน • ถ่างนิ้ว/ล้อเมาส์เพื่อซูม • สองนิ้วลากเพื่อเลื่อน หรือกดปุ่มค้าง</p>
-        <div class="cam">
-          <button type="button" data-cam="in">＋ ซูมเข้า</button>
-          <button type="button" data-cam="rotU">มุมสูง</button>
-          <button type="button" data-cam="out">－ ซูมออก</button>
-          <button type="button" data-cam="rotL">⟲ หมุนซ้าย</button>
-          <button type="button" data-cam="reset" class="primary">รีเซ็ต</button>
-          <button type="button" data-cam="rotR">⟳ หมุนขวา</button>
-          <button type="button" data-cam="fwd">▲ เดินหน้า</button>
-          <button type="button" data-cam="rotD">มุมต่ำ</button>
-          <button type="button" data-cam="back">▼ ถอยหลัง</button>
-          <button type="button" data-cam="left">◀ ซ้าย</button>
-          <button type="button" data-cam="up">⬆ ขึ้น</button>
-          <button type="button" data-cam="right">▶ ขวา</button>
-          <span></span>
-          <button type="button" data-cam="down">⬇ ลง</button>
-          <span></span>
-        </div>
-      </details>
+        <section data-tab="chars" hidden>
+          <h2>💃 ตัวละครและกติกา</h2>
 
-      <details name="sec">
-        <summary>💃 ตัวละครและกติกา</summary>
         <label>ขนาดรูปโปรไฟล์ <span id="picVal"></span>%
           <input id="picSize" type="range" min="15" max="70" />
         </label>
@@ -109,24 +122,72 @@
           </label>
         </div>
         <p class="hint">แก้แล้วบันทึกให้อัตโนมัติ</p>
-      </details>
+        </section>
 
-      <details name="sec">
-        <summary>📡 เชื่อมต่อ TikTok LIVE</summary>
-        <p id="status" class="status">…</p>
-        <label>ชื่อผู้ใช้ TikTok ที่กำลังไลฟ์
-          <input id="username" placeholder="@username" autocomplete="off" autocapitalize="off" />
-        </label>
-        <div class="row">
-          <button type="button" id="btnConnect" class="primary">เชื่อมต่อไลฟ์</button>
-          <button type="button" id="btnDemo">โหมดทดลอง</button>
-          <button type="button" id="btnStop">หยุด</button>
+        <section data-tab="cam" hidden>
+          <h2>🎥 มุมกล้อง</h2>
+
+        <p class="hint">ลากนิ้ว/เมาส์บนเวทีเพื่อหมุน • ถ่างนิ้ว/ล้อเมาส์เพื่อซูม • สองนิ้วลากเพื่อเลื่อน หรือกดปุ่มค้าง</p>
+        <div class="cam">
+          <button type="button" data-cam="in">＋ ซูมเข้า</button>
+          <button type="button" data-cam="rotU">มุมสูง</button>
+          <button type="button" data-cam="out">－ ซูมออก</button>
+          <button type="button" data-cam="rotL">⟲ หมุนซ้าย</button>
+          <button type="button" data-cam="reset" class="primary">รีเซ็ต</button>
+          <button type="button" data-cam="rotR">⟳ หมุนขวา</button>
+          <button type="button" data-cam="fwd">▲ เดินหน้า</button>
+          <button type="button" data-cam="rotD">มุมต่ำ</button>
+          <button type="button" data-cam="back">▼ ถอยหลัง</button>
+          <button type="button" data-cam="left">◀ ซ้าย</button>
+          <button type="button" data-cam="up">⬆ ขึ้น</button>
+          <button type="button" data-cam="right">▶ ขวา</button>
+          <span></span>
+          <button type="button" data-cam="down">⬇ ลง</button>
+          <span></span>
         </div>
-      </details>
+        </section>
 
-      <label id="keyRow" hidden>รหัสผู้ดูแล
-        <input id="key" type="password" autocomplete="off" />
-      </label>
+        <section data-tab="test" hidden>
+          <h2>🧪 ทดสอบ</h2>
+          <p id="testOff" class="status" hidden>ตอนนี้อยู่โหมดรันจริง ปุ่มทดสอบถูกปิดไว้ สลับเป็นโหมดทดสอบที่แท็บ "🚀 เริ่มไลฟ์" ก่อน</p>
+          <fieldset id="testSet">
+            <label>ชื่อผู้ชม (ชื่อเดิม = คนเดิม)
+              <input id="tName" value="สมชาย" maxlength="30" autocomplete="off" />
+            </label>
+            <div class="row wrap">
+              <button type="button" data-test="join">คนเข้า</button>
+              <button type="button" data-test="like" data-n="50">ไลก์ x50</button>
+              <button type="button" data-test="chat">คอมเมนต์</button>
+              <button type="button" data-test="follow">ติดตาม</button>
+              <button type="button" data-test="share">แชร์</button>
+              <button type="button" data-test="leave">คนออก</button>
+            </div>
+            <label>ของขวัญ
+              <select id="tGift">
+                <option value="1">🌹 Rose (1 เหรียญ)</option>
+                <option value="5">🫰 Finger Heart (5 เหรียญ)</option>
+                <option value="20">🧴 Perfume (20 เหรียญ)</option>
+                <option value="30">🍩 Doughnut (30 เหรียญ)</option>
+                <option value="100">🎊 Confetti (100 เหรียญ)</option>
+                <option value="1000">🌌 Galaxy (1,000 เหรียญ)</option>
+              </select>
+            </label>
+            <div class="row">
+              <label>จำนวน
+                <input id="tCount" type="number" min="1" max="99" value="1" inputmode="numeric" />
+              </label>
+              <button type="button" data-test="gift" class="primary">ส่งของขวัญ</button>
+            </div>
+            <label class="check"><input id="tAuto" type="checkbox" /> จำลองผู้ชมอัตโนมัติ (สุ่มคนเข้า กดใจ ส่งของขวัญ)</label>
+            <button type="button" data-test="reset">ล้างฉาก (รีเซ็ต)</button>
+            <p class="hint">สายกดใจต้องดูครบเวลาขั้นต่ำก่อนจึงขึ้นเวทีได้ (ตั้งที่แท็บ "ตัวละคร") ส่วนสายของขวัญขึ้นได้ทันที</p>
+          </fieldset>
+        </section>
+
+        <label id="keyRow" hidden>รหัสผู้ดูแล
+          <input id="key" type="password" autocomplete="off" />
+        </label>
+      </div>
     </form>
 
     <script type="module" src="main.js"></script>

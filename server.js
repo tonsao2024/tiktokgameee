@@ -35,6 +35,7 @@ const cfg = {
 
 // มุมกล้อง (null = อัตโนมัติ) ใช้ร่วมกันทุกหน้าจอ เพื่อปรับจากเครื่องอื่นแล้วจอไลฟ์เปลี่ยนตาม
 let cam = null;
+let lastUser = ''; // ชื่อผู้ใช้ TikTok ที่เชื่อมต่อล่าสุด (จำไว้เติมให้ในแผง)
 let camRev = 0;
 
 // ---------- จำค่าที่ตั้งไว้ลงไฟล์ (เปิดใหม่ค่าไม่หาย) ----------
@@ -44,12 +45,13 @@ try {
   const saved = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8'));
   for (const k of SAVE_KEYS) if (saved[k] != null) cfg[k] = saved[k];
   if (validCam(saved.cam)) cam = saved.cam;
+  if (typeof saved.username === 'string') lastUser = saved.username;
 } catch {}
 let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const out = { cam };
+    const out = { cam, username: lastUser };
     for (const k of SAVE_KEYS) out[k] = cfg[k];
     fs.writeFile(SAVE_FILE, JSON.stringify(out, null, 2), () => {});
   }, 500);
@@ -266,6 +268,8 @@ function connectTikTok(username) {
   viewers.clear();
   gifters.clear();
   source = { mode: 'tiktok', username, status: 'กำลังเชื่อมต่อ…' };
+  lastUser = username;
+  save();
 
   let lib;
   try {
@@ -334,26 +338,30 @@ let demoTimer = null;
 let demoSeq = 0;
 const demoBots = new Map(); // id -> เวลาที่จะเลิกดู
 
-function startDemo() {
-  disconnectTikTok();
-  stopDemo();
-  viewers.clear();
-  gifters.clear();
-  source = { mode: 'demo', username: '', status: 'โหมดทดลอง (ผู้ชมจำลอง)' };
-  const addBot = () => {
-    const name = DEMO_NAMES[demoSeq % DEMO_NAMES.length];
-    const id = `demo_${demoSeq++}`;
-    demoBots.set(id, Date.now() + (40 + Math.random() * 400) * 1000);
-    on.join({ id, name, avatar: '' });
-  };
-  for (let i = 0; i < 14; i++) addBot();
-  // ให้เห็นเวทีทันทีตอนเปิดโหมดทดลอง
-  let i = 0;
-  for (const v of viewers.values()) {
-    v.joinedAt -= 600000;
-    v.likes = 200 - i * 12;
-    if (i % 4 === 0) v.gifts = 30 - i;
-    v.score = 300 - i++ * 12;
+function addBot() {
+  const name = DEMO_NAMES[demoSeq % DEMO_NAMES.length];
+  const id = `demo_${demoSeq++}`;
+  demoBots.set(id, Date.now() + (40 + Math.random() * 400) * 1000);
+  on.join({ id, name, avatar: '' });
+}
+// เปิด/ปิดผู้ชมจำลองอัตโนมัติ (ใช้ได้เฉพาะโหมดทดสอบ)
+function setAuto(flag) {
+  clearInterval(demoTimer);
+  demoTimer = null;
+  source.auto = !!flag;
+  source.status = flag ? 'โหมดทดสอบ (จำลองผู้ชมอัตโนมัติ)' : 'โหมดทดสอบ (กดจำลองเองทีละคน)';
+  if (!flag) return demoBots.clear(); // บอตที่อยู่ในฉากจะเงียบแล้วหายไปเองตามเวลา
+  if (viewers.size < 6) {
+    for (let i = 0; i < 14; i++) addBot();
+    // ให้เห็นเวทีทันที
+    let i = 0;
+    for (const v of viewers.values()) {
+      if (!demoBots.has(v.id)) continue;
+      v.joinedAt -= 600000;
+      v.likes = 200 - i * 12;
+      if (i % 4 === 0) v.gifts = 30 - i;
+      v.score = 300 - i++ * 12;
+    }
   }
   demoTimer = setInterval(() => {
     const now = Date.now();
@@ -374,6 +382,40 @@ function startDemo() {
       else if (r < 0.5) on.join(u);
     }
   }, 1000);
+}
+// โหมดทดสอบ: ไม่ต่อ TikTok ใช้ผู้ชมจำลองทั้งหมด
+function startTest(auto = true) {
+  disconnectTikTok();
+  stopDemo();
+  viewers.clear();
+  gifters.clear();
+  source = { mode: 'test', username: '', auto: false, status: '' };
+  setAuto(auto);
+}
+// โหมดรันจริง: ล้างผู้ชมจำลองออก รอเชื่อมต่อไลฟ์
+function goLive() {
+  disconnectTikTok();
+  stopDemo();
+  viewers.clear();
+  gifters.clear();
+  source = { mode: 'idle', username: '', status: 'โหมดรันจริง: ยังไม่ได้เชื่อมต่อ' };
+}
+// จำลองเหตุการณ์ทีละคนจากแท็บทดสอบ
+function testAction(data) {
+  const name = String(data.name || '').replace(/\s+/g, ' ').trim().slice(0, 30) || 'ผู้ชมทดสอบ';
+  const u = { id: `test_${name}`, name, avatar: '' };
+  const n = clamp(Math.round(+data.n) || 1, 1, 9999);
+  switch (data.action) {
+    case 'join': on.join(u); break;
+    case 'like': on.like(u, n); break;
+    case 'chat': on.chat(u); break;
+    case 'follow': on.follow(u); break;
+    case 'share': on.share(u); break;
+    case 'gift': on.gift(u, clamp(Math.round(+data.diamonds) || 1, 1, 50000) * n); break;
+    case 'leave': viewers.delete(u.id); break;
+    default: return false;
+  }
+  return true;
 }
 function stopDemo() {
   clearInterval(demoTimer);
@@ -428,7 +470,7 @@ function handleApi(req, res, url) {
     res.end(JSON.stringify(obj));
   };
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size });
+    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size, username: lastUser });
   }
   if (req.method !== 'POST') return json(405, { error: 'method' });
   let body = '';
@@ -448,13 +490,24 @@ function handleApi(req, res, url) {
         connectTikTok(data.username);
         break;
       case '/api/demo':
-        startDemo();
+        startTest(true);
+        break;
+      case '/api/mode':
+        if (data.mode === 'test') startTest(data.auto !== false);
+        else if (data.mode === 'live') goLive();
+        else return json(400, { error: 'mode' });
+        break;
+      case '/api/test':
+        if (source.mode !== 'test') return json(400, { error: 'ใช้ได้เฉพาะโหมดทดสอบ (สลับโหมดที่แท็บ "เริ่มไลฟ์")' });
+        if (data.action === 'reset') startTest(false);
+        else if (data.action === 'auto') setAuto(!!data.on);
+        else if (!testAction(data)) return json(400, { error: 'action' });
         break;
       case '/api/stop':
         disconnectTikTok();
         stopDemo();
         viewers.clear();
-        source = { mode: 'idle', username: '', status: 'หยุดแล้ว' };
+        source = { mode: 'idle', username: '', status: 'โหมดรันจริง: หยุดแล้ว' };
         break;
       case '/api/config':
         if (typeof data.title === 'string') cfg.title = data.title.replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -489,5 +542,5 @@ setInterval(tick, 1000);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`เวทีพร้อมแล้ว: http://localhost:${PORT}`);
   if (process.env.TIKTOK_USERNAME) connectTikTok(process.env.TIKTOK_USERNAME);
-  else startDemo();
+  else startTest(true);
 });
