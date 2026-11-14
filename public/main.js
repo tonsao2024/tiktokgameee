@@ -4,7 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildStage, THEMES, FOOD, MAX_SHOPS } from './stage.js';
+import { buildStage, THEMES, FOOD, MAX_SHOPS, STAGE_Y } from './stage.js';
 import { Character, updateEffects } from './character.js';
 
 const params = new URLSearchParams(location.search);
@@ -45,14 +45,48 @@ let camRev = -1;
 let interacting = false;
 let lastLocalCam = 0;
 
-function autoCamera() {
-  // ถอยกล้องให้เห็นเวทีเต็มความกว้าง (ออกแบบสำหรับจอแนวตั้ง 9:16 ของ TikTok)
+// มุม "เต็มเวที": ถอยกล้องให้เห็นเวทีเต็มความกว้าง (ออกแบบสำหรับจอแนวตั้ง 9:16 ของ TikTok)
+function autoPose() {
   const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
   const dist = Math.max(stage.viewHalfWidth / tanH, 24);
-  const portrait = camera.aspect < 1;
-  camera.position.set(0, 9, -1 + dist);
-  controls.target.set(0, portrait ? 5 : 3.5, 1);
+  return { p: new THREE.Vector3(0, 9, -1 + dist), t: new THREE.Vector3(0, camera.aspect < 1 ? 5 : 3.5, 1) };
+}
+function autoCamera() {
+  const a = autoPose();
+  camGoal = null;
+  camera.position.copy(a.p);
+  controls.target.copy(a.t);
   controls.update();
+}
+// กล้องเลื่อนไปหามุมใหม่อย่างนุ่มนวล (ไม่กระโดด)
+let camGoal = null;
+function flyTo(pose) {
+  camGoal = { p: pose.p.clone(), t: pose.t.clone() };
+}
+// มุมสำเร็จรูป คำนวณจากขนาดเวทีปัจจุบัน
+function presetPose(name) {
+  const a = autoPose();
+  const half = stage.width / 2;
+  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const swing = (ang) => {
+    const off = a.p.clone().sub(a.t).applyAxisAngle(V(0, 1, 0), ang).multiplyScalar(0.92);
+    off.y += 3;
+    return { p: a.t.clone().add(off), t: a.t.clone() };
+  };
+  const shopX = half + 4.2;
+  const zMax = stage.groundSlots.reduce((m, q) => Math.max(m, q.z), 6); // แถวหลังสุดของลานเต้น
+  switch (name) {
+    case 'close': return { p: V(0, STAGE_Y + 2.4, Math.max(8, (half * 0.62) / tanH)), t: V(0, STAGE_Y + 1.7, -2) };
+    case 'crowd': return { p: V(0, 6.2, zMax + 7.5), t: V(0, 1.2, (2.9 + zMax) / 2) };
+    case 'high': return { p: V(0, 17 + half, a.p.z * 0.72), t: V(0, 1.5, 2.5) };
+    case 'low': return { p: V(0, 1.1, 12.5), t: V(0, STAGE_Y + 3.6, -2) };
+    case 'left': return swing(-0.6);
+    case 'right': return swing(0.6);
+    case 'shopL': return { p: V(1.5, 7, zMax * 0.5 + 5), t: V(-shopX, 1.2, 5.6) };
+    case 'shopR': return { p: V(-1.5, 7, zMax * 0.5 + 5), t: V(shopX, 1.2, 5.6) };
+    default: return a;
+  }
 }
 function resize() {
   const w = view.clientWidth || innerWidth, h = view.clientHeight || innerHeight;
@@ -69,6 +103,8 @@ resize();
 let camTimer = null;
 function sendCamera(reset = false) {
   lastLocalCam = performance.now();
+  const r0 = (v) => v.toArray().map((n) => Math.round(n * 1000) / 1000);
+  remoteCam = reset ? null : { p: r0(camera.position), t: r0(controls.target) };
   clearTimeout(camTimer);
   camTimer = setTimeout(async () => {
     const r3 = (v) => v.toArray().map((n) => Math.round(n * 1000) / 1000);
@@ -76,33 +112,98 @@ function sendCamera(reset = false) {
     if (out && out.camRev != null) camRev = out.camRev;
   }, 200);
 }
+let remoteCam = null; // มุมกล้องล่าสุดที่บันทึกไว้ (null = เต็มเวที)
+function camPose(cam) {
+  return cam ? { p: new THREE.Vector3().fromArray(cam.p), t: new THREE.Vector3().fromArray(cam.t) } : autoPose();
+}
 function applyRemoteCamera(cam, rev) {
   if (rev === camRev) return;
   if (interacting || performance.now() - lastLocalCam < 1500) return;
+  const first = camRev === -1;
   camRev = rev;
+  remoteCam = cam;
   customCam = !!cam;
-  if (cam) {
-    camera.position.fromArray(cam.p);
-    controls.target.fromArray(cam.t);
+  if (first) {
+    const a = camPose(cam);
+    camera.position.copy(a.p);
+    controls.target.copy(a.t);
     controls.update();
-  } else autoCamera();
+  } else flyTo(camPose(cam));
 }
+// ส่งมุมกล้องที่เลือก (ปุ่มมุมสำเร็จรูป/มุมของฉัน) ให้ทุกหน้าจอเลื่อนตาม
+async function sendPose(pose, reset = false) {
+  lastLocalCam = performance.now();
+  clearTimeout(camTimer);
+  const r3 = (v) => v.toArray().map((n) => Math.round(n * 1000) / 1000);
+  remoteCam = reset ? null : { p: r3(pose.p), t: r3(pose.t) };
+  customCam = !reset;
+  setFollowLocal(null);
+  flyTo(pose);
+  const out = await api('/api/camera', { cam: remoteCam }, true);
+  if (out && out.camRev != null) camRev = out.camRev;
+}
+// ---------- ติดตามตัวละคร ----------
+let followId = null;
+let followDist = 6;
+function setFollowLocal(id, dist) {
+  if (dist) followDist = dist;
+  if (id === followId) return;
+  const old = actors.get(followId);
+  if (old) old.tag.el.classList.remove('tracked');
+  followId = id || null;
+  const a = actors.get(followId);
+  if (a) a.tag.el.classList.add('tracked');
+  controls.enabled = !followId;
+  if (!followId) flyTo(camPose(remoteCam)); // เลิกติดตาม: กลับมุมเดิม
+}
+function follow(data) {
+  return api('/api/follow', data, true).then((r) => {
+    if (r && r.ok) setFollowLocal(r.follow, r.followDist);
+    return r;
+  });
+}
+const _fp = new THREE.Vector3(), _ft = new THREE.Vector3();
+function updateCamera(dt) {
+  const a = followId && actors.get(followId);
+  if (a) {
+    const r = a.char.root;
+    _ft.set(r.position.x, r.position.y + 1.15 * r.scale.y, r.position.z);
+    _fp.set(_ft.x, _ft.y + followDist * 0.22, _ft.z + followDist);
+    const k = 1 - Math.exp(-dt * 3.2);
+    camera.position.lerp(_fp, k);
+    controls.target.lerp(_ft, k);
+  } else if (camGoal) {
+    const k = 1 - Math.exp(-dt * 3.6);
+    camera.position.lerp(camGoal.p, k);
+    controls.target.lerp(camGoal.t, k);
+    if (camera.position.distanceToSquared(camGoal.p) < 1e-4) camGoal = null;
+  }
+}
+const _sp = new THREE.Vector3(), _st = new THREE.Vector3();
 controls.addEventListener('start', () => {
+  camGoal = null;
   interacting = true;
-  customCam = true;
+  _sp.copy(camera.position);
+  _st.copy(controls.target);
 });
 controls.addEventListener('end', () => {
   interacting = false;
+  // แค่คลิก/ดับเบิลคลิกโดยไม่ได้ขยับกล้อง: ไม่ต้องบันทึกมุมใหม่
+  if (_sp.distanceToSquared(camera.position) < 1e-6 && _st.distanceToSquared(controls.target) < 1e-6) return;
+  customCam = true;
   sendCamera();
 });
 
 // ปุ่มควบคุมกล้องในแผงตั้งค่า (กดค้างได้)
 const _off = new THREE.Vector3(), _sph = new THREE.Spherical(), _dir = new THREE.Vector3(), _right = new THREE.Vector3();
 function camAction(act) {
-  if (act === 'reset') {
-    customCam = false;
-    autoCamera();
-    return sendCamera(true);
+  if (act === 'reset') return sendPose(autoPose(), true);
+  if (followId) setFollowLocal(null);
+  // ถ้ากล้องกำลังเลื่อนอยู่ ให้ไปถึงปลายทางก่อนแล้วค่อยปรับ
+  if (camGoal) {
+    camera.position.copy(camGoal.p);
+    controls.target.copy(camGoal.t);
+    camGoal = null;
   }
   customCam = true;
   _off.subVectors(camera.position, controls.target);
@@ -303,6 +404,8 @@ function applyState(msg) {
   picSize = c.picSize || 34;
   if (!params.get('bpm') && c.bpm) BPM = c.bpm;
   applyRemoteCamera(msg.cam, msg.camRev);
+  if (performance.now() - lastFollowSend > 1500) setFollowLocal(msg.follow, msg.followDist);
+  updateFollowUi(msg.viewers);
   updatePanelStatus(msg.source);
   const seen = new Set();
   const ground = [];
@@ -411,7 +514,10 @@ function connect() {
     const msg = JSON.parse(e.data);
     if (msg.t === 'state') applyState(msg);
     else if (msg.t === 'fx') applyFx(msg);
-    else if (msg.t === 'cam') applyRemoteCamera(msg.cam, msg.camRev);
+    else if (msg.t === 'cam') {
+      setFollowLocal(null);
+      applyRemoteCamera(msg.cam, msg.camRev);
+    } else if (msg.t === 'follow') setFollowLocal(msg.id, msg.dist);
   };
   ws.onclose = () => setTimeout(connect, 2000);
   ws.onerror = () => ws.close();
@@ -539,6 +645,7 @@ function frame() {
     startSnack();
     snackIn = 2 + Math.random() * 4;
   }
+  updateCamera(dt);
   controls.update();
   updateEffects(dt);
   stage.update(time, beat);
@@ -612,6 +719,10 @@ async function openPanel(open) {
   renderShops(s.cfg.shops);
   $('picVal').textContent = s.cfg.picSize;
   setKeyState(s.hasKey);
+  camSlots = s.camSlots || camSlots;
+  renderSlots();
+  $('followDist').value = s.followDist || 6;
+  $('distVal').textContent = s.followDist || 6;
   updatePanelStatus(s.source);
 }
 function setKeyState(has) {
@@ -732,6 +843,83 @@ $('picSize').oninput = () => {
   $('picVal').textContent = picSize;
   liveConfig({ picSize });
 };
+
+// ---------- แท็บกล้อง: มุมสำเร็จรูป / มุมของฉัน / ติดตามตัวละคร ----------
+for (const b of document.querySelectorAll('[data-preset]')) {
+  b.onclick = () => sendPose(presetPose(b.dataset.preset), b.dataset.preset === 'full');
+}
+let camSlots = [null, null, null, null];
+function renderSlots() {
+  $('slots').replaceChildren(
+    ...camSlots.map((c, i) => {
+      const box = document.createElement('div');
+      const go = document.createElement('button');
+      Object.assign(go, { type: 'button', textContent: c ? `⭐ มุม ${i + 1}` : `ว่าง ${i + 1}`, className: c ? '' : 'empty', disabled: !c });
+      go.onclick = () => sendPose(camPose(c));
+      const save = document.createElement('button');
+      Object.assign(save, { type: 'button', textContent: '💾 เก็บ', className: 'save', title: 'เก็บมุมกล้องตอนนี้ไว้ในช่องนี้' });
+      save.onclick = async () => {
+        const r3 = (v) => v.toArray().map((n) => Math.round(n * 1000) / 1000);
+        const src = camGoal || { p: camera.position, t: controls.target };
+        const r = await api('/api/camslot', { i, cam: { p: r3(src.p), t: r3(src.t) } });
+        if (r.camSlots) camSlots = r.camSlots;
+        renderSlots();
+      };
+      box.append(go, save);
+      return box;
+    })
+  );
+}
+let lastFollowSend = 0;
+function updateFollowUi(viewers) {
+  if (panel.hidden) return;
+  const a = viewers.find((v) => v.id === followId);
+  $('followState').textContent = a ? `🎯 กำลังติดตาม: ${a.name}` : 'ยังไม่ได้ติดตามใคร';
+  $('btnUnfollow').disabled = !a;
+  const sel = $('followSel');
+  if (document.activeElement === sel) return; // กำลังเลือกอยู่ อย่าเพิ่งเปลี่ยนรายการ
+  const keep = sel.value;
+  sel.replaceChildren(...viewers.map((v) => new Option(`${v.onStage ? '⭐ ' : ''}${v.name}  ❤${v.likes} 🎁${v.gifts}`, v.id)));
+  if (viewers.some((v) => v.id === keep)) sel.value = keep;
+}
+const doFollow = (data) => {
+  lastFollowSend = performance.now();
+  return follow(data);
+};
+$('btnFollow').onclick = () => $('followSel').value && doFollow({ id: $('followSel').value });
+$('btnUnfollow').onclick = () => doFollow({ id: null });
+for (const b of document.querySelectorAll('[data-pick]')) b.onclick = () => doFollow({ pick: b.dataset.pick });
+$('followDist').oninput = () => {
+  followDist = Number($('followDist').value);
+  $('distVal').textContent = followDist;
+  clearTimeout($('followDist').t);
+  $('followDist').t = setTimeout(() => doFollow({ dist: followDist }), 200);
+};
+// ดับเบิลคลิก/แตะสองครั้งที่ตัวละครบนเวที = ติดตามตัวนั้น
+// (จับจาก pointer เอง เพราะตัวควบคุมกล้องกันเหตุการณ์ dblclick ของเบราว์เซอร์ไว้)
+let tapDown = null, lastTap = null;
+canvas.addEventListener('pointerdown', (e) => (tapDown = { x: e.clientX, y: e.clientY, t: performance.now() }), true);
+canvas.addEventListener(
+  'pointerup',
+  (e) => {
+    const now = performance.now();
+    const d = tapDown;
+    tapDown = null;
+    if (!d || now - d.t > 350 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return (lastTap = null);
+    if (!lastTap || now - lastTap.t > 450 || Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) > 30) return (lastTap = { x: e.clientX, y: e.clientY, t: now });
+    lastTap = null;
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    let best = null, bd = 80 * 80;
+    for (const a of actors.values()) {
+      if (a.sx == null) continue;
+      const dd = (a.sx - x) ** 2 + (a.sy + 30 - y) ** 2;
+      if (dd < bd) (bd = dd), (best = a);
+    }
+    if (best) doFollow({ id: best.id });
+  },
+  true
+);
 
 // จอกว้าง (คอม): เปิดแผงด้านซ้ายไว้เลย ยกเว้นหน้า ?clean=1 ที่ใช้ออกไลฟ์
 if (!document.body.classList.contains('clean') && innerWidth > 560) openPanel(true);

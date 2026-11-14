@@ -38,6 +38,9 @@ let cam = null;
 let eulerKey = process.env.EULER_API_KEY || ''; // คีย์ Euler Stream (ถ้ามี)
 let lastUser = ''; // ชื่อผู้ใช้ TikTok ที่เชื่อมต่อล่าสุด (จำไว้เติมให้ในแผง)
 let camRev = 0;
+let follow = null; // id ตัวละครที่กล้องกำลังติดตาม
+let followDist = 6; // ระยะกล้องตอนติดตาม (เมตร)
+let camSlots = [null, null, null, null]; // มุมกล้องที่ผู้ใช้บันทึกเอง
 
 // ---------- จำค่าที่ตั้งไว้ลงไฟล์ (เปิดใหม่ค่าไม่หาย) ----------
 const SAVE_FILE = path.join(__dirname, 'settings.json');
@@ -46,6 +49,7 @@ try {
   const saved = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8'));
   for (const k of SAVE_KEYS) if (saved[k] != null) cfg[k] = saved[k];
   if (validCam(saved.cam)) cam = saved.cam;
+  if (Array.isArray(saved.camSlots)) camSlots = camSlots.map((_, i) => (validCam(saved.camSlots[i]) ? saved.camSlots[i] : null));
   if (typeof saved.username === 'string') lastUser = saved.username;
   if (typeof saved.eulerKey === 'string' && saved.eulerKey) eulerKey = saved.eulerKey;
 } catch {}
@@ -53,7 +57,7 @@ let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const out = { cam, username: lastUser, eulerKey };
+    const out = { cam, camSlots, username: lastUser, eulerKey };
     for (const k of SAVE_KEYS) out[k] = cfg[k];
     fs.writeFile(SAVE_FILE, JSON.stringify(out, null, 2), () => {});
   }, 500);
@@ -102,6 +106,7 @@ function clearRoom() {
   viewers.clear();
   gifters.clear();
   memory.clear();
+  follow = null;
 }
 
 function touch(u, pts = 0, strong = false) {
@@ -159,6 +164,7 @@ function tick() {
   const now = Date.now();
   // 1) คะแนนจากเวลาดู + ลบคนที่ไม่ดูต่อ
   // ระหว่างที่การเชื่อมต่อไลฟ์หลุด ไม่มีข้อมูลเข้ามา จึงยังไม่ตัดใครออก
+  if (follow && !viewers.has(follow)) follow = null; // คนที่ติดตามอยู่ออกไปแล้ว
   const paused = source.mode === 'tiktok' && !connected;
   for (const v of viewers.values()) {
     if (!paused && now - v.lastActive > cfg.idleTimeout * 1000) drop(v);
@@ -218,7 +224,7 @@ function snapshot() {
       onStage: v.onStage,
       via: v.via,
     }));
-  return { t: 'state', viewers: list, cfg: { title: cfg.title, stageSize: cfg.stageSize, picSize: cfg.picSize, bpm: cfg.bpm, stageWidth: cfg.stageWidth, theme: cfg.theme, shops: shopNames() }, source, cam, camRev };
+  return { t: 'state', viewers: list, cfg: { title: cfg.title, stageSize: cfg.stageSize, picSize: cfg.picSize, bpm: cfg.bpm, stageWidth: cfg.stageWidth, theme: cfg.theme, shops: shopNames() }, source, cam, camRev, follow, followDist };
 }
 
 // ---------- WebSocket ----------
@@ -524,7 +530,7 @@ function handleApi(req, res, url) {
     res.end(JSON.stringify(obj));
   };
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size, username: lastUser, hasKey: !!eulerKey });
+    return json(200, { source, cfg, maxStage: maxStage(), needKey: !!ADMIN_KEY, viewers: viewers.size, username: lastUser, hasKey: !!eulerKey, camSlots, follow, followDist });
   }
   if (req.method !== 'POST') return json(405, { error: 'method' });
   let body = '';
@@ -582,9 +588,31 @@ function handleApi(req, res, url) {
       case '/api/camera':
         cam = validCam(data.cam) ? { p: data.cam.p, t: data.cam.t } : null;
         camRev++;
+        follow = null; // เลือกมุมกล้องเอง = เลิกติดตามตัวละคร
         save();
         broadcast({ t: 'cam', cam, camRev });
         return json(200, { ok: true, camRev });
+      case '/api/follow': {
+        // ติดตามตัวละคร: ระบุ id เอง หรือให้ระบบเลือก (pick: like | gift | random)
+        const all = [...viewers.values()];
+        let id = null;
+        if (data.pick === 'like') id = (all.sort((a, b) => b.likes - a.likes)[0] || {}).id;
+        else if (data.pick === 'gift') id = (all.filter((v) => v.gifts > 0).sort((a, b) => b.gifts - a.gifts)[0] || {}).id;
+        else if (data.pick === 'random') id = (all[Math.floor(Math.random() * all.length)] || {}).id;
+        else if (data.id && viewers.has(String(data.id))) id = String(data.id);
+        if (data.dist) followDist = clamp(+data.dist || 6, 2.5, 16);
+        if (data.pick && !id) return json(400, { error: 'ยังไม่มีตัวละครที่ตรงเงื่อนไข' });
+        if (data.id !== undefined || data.pick) follow = id || null;
+        broadcast({ t: 'follow', id: follow, dist: followDist });
+        return json(200, { ok: true, follow, followDist });
+      }
+      case '/api/camslot': {
+        const i = Math.round(+data.i);
+        if (!(i >= 0 && i < camSlots.length)) return json(400, { error: 'slot' });
+        camSlots[i] = validCam(data.cam) ? { p: data.cam.p, t: data.cam.t } : null;
+        save();
+        return json(200, { ok: true, camSlots });
+      }
       default:
         return json(404, { error: 'not found' });
     }

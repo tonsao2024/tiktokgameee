@@ -266,3 +266,22 @@ body.panel-open #view {
 #panel .shops .row input { margin-top: 0; }
 #panel .shops .row .del { flex: 0 0 38px; padding: 0; }
 #panel button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* แท็บกล้อง */
+#panel h3 { margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.14); font-size: 14px; color: #ffe08a; }
+#panel h2 + h3 { border-top: 0; padding-top: 0; margin-top: 4px; }
+#panel .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 6px; }
+#panel .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+#panel .grid3 button, #panel .grid2 button, #panel .slots button { padding: 10px 2px; font-size: 13px; touch-action: none; user-select: none; -webkit-user-select: none; }
+#panel #presets button { padding: 13px 2px; }
+#panel #presets button.on, #panel .slots button.on { outline: 2px solid #ffd54a; }
+#panel .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+#panel .slots > div { display: flex; flex-direction: column; gap: 3px; }
+#panel .slots .save { padding: 4px 0; font-size: 12px; background: transparent; }
+#panel .slots .empty { color: #8f7fa8; border-style: dashed; }
+#panel .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+#panel .pads .cap { font-size: 12px; color: #d9c9ef; text-align: center; }
+#panel .pad button { padding: 10px 0; font-size: 14px; }
+#panel .row select { flex: 2; margin-top: 0; min-width: 0; }
+.tag.tracked .pic { border-color: #00e5ff; box-shadow: 0 0 0 4px rgba(0,229,255,.55), 0 0 18px #00e5ff; }
+@media (max-width: 900px) { #panel .pads { grid-template-columns: 1fr; } }

@@ -127,26 +127,66 @@
         </section>
 
         <section data-tab="cam" hidden>
-          <h2>🎥 มุมกล้อง</h2>
+          <h2>🎥 กล้อง</h2>
 
-        <p class="hint">ลากนิ้ว/เมาส์บนเวทีเพื่อหมุน • ถ่างนิ้ว/ล้อเมาส์เพื่อซูม • สองนิ้วลากเพื่อเลื่อน หรือกดปุ่มค้าง</p>
-        <div class="cam">
-          <button type="button" data-cam="in">＋ ซูมเข้า</button>
-          <button type="button" data-cam="rotU">มุมสูง</button>
-          <button type="button" data-cam="out">－ ซูมออก</button>
-          <button type="button" data-cam="rotL">⟲ หมุนซ้าย</button>
-          <button type="button" data-cam="reset" class="primary">รีเซ็ต</button>
-          <button type="button" data-cam="rotR">⟳ หมุนขวา</button>
-          <button type="button" data-cam="fwd">▲ เดินหน้า</button>
-          <button type="button" data-cam="rotD">มุมต่ำ</button>
-          <button type="button" data-cam="back">▼ ถอยหลัง</button>
-          <button type="button" data-cam="left">◀ ซ้าย</button>
-          <button type="button" data-cam="up">⬆ ขึ้น</button>
-          <button type="button" data-cam="right">▶ ขวา</button>
-          <span></span>
-          <button type="button" data-cam="down">⬇ ลง</button>
-          <span></span>
-        </div>
+          <h3>🎬 มุมสำเร็จรูป (กดแล้วกล้องเลื่อนไปเอง)</h3>
+          <div class="grid3" id="presets">
+            <button type="button" data-preset="full" class="primary">🏟 เต็มเวที</button>
+            <button type="button" data-preset="close">🎤 ใกล้เวที</button>
+            <button type="button" data-preset="crowd">💃 ลานเต้น</button>
+            <button type="button" data-preset="left">↖ เฉียงซ้าย</button>
+            <button type="button" data-preset="high">🚁 มุมสูง</button>
+            <button type="button" data-preset="right">↗ เฉียงขวา</button>
+            <button type="button" data-preset="shopL">🍢 ร้านซ้าย</button>
+            <button type="button" data-preset="low">🔥 มุมเงย</button>
+            <button type="button" data-preset="shopR">🍢 ร้านขวา</button>
+          </div>
+
+          <h3>⭐ มุมของฉัน (บันทึกเองได้ 4 มุม)</h3>
+          <div class="slots" id="slots"></div>
+          <p class="hint">จัดมุมที่ชอบก่อน แล้วกด 💾 ใต้ช่องที่ต้องการเก็บ ครั้งต่อไปกดชื่อมุมเพื่อเรียกใช้</p>
+
+          <h3>🎯 ติดตามตัวละคร</h3>
+          <p id="followState" class="status">ยังไม่ได้ติดตามใคร</p>
+          <div class="row">
+            <select id="followSel"></select>
+            <button type="button" id="btnFollow" class="primary">ติดตาม</button>
+          </div>
+          <div class="grid3">
+            <button type="button" data-pick="like">❤️ ใจสูงสุด</button>
+            <button type="button" data-pick="gift">🎁 ของขวัญสูงสุด</button>
+            <button type="button" data-pick="random">🎲 สุ่ม</button>
+          </div>
+          <label>ระยะซูมตอนติดตาม <span id="distVal"></span> ม. (น้อย = ใกล้)
+            <input id="followDist" type="range" min="2.5" max="16" step="0.5" />
+          </label>
+          <button type="button" id="btnUnfollow">✕ เลิกติดตาม กลับมุมเดิม</button>
+          <p class="hint">ดับเบิลคลิกที่ตัวละครบนเวทีเพื่อติดตามได้เช่นกัน</p>
+
+          <h3>🕹 ปรับเอง (กดค้างได้)</h3>
+          <div class="grid2">
+            <button type="button" data-cam="out">－ ซูมออก</button>
+            <button type="button" data-cam="in">＋ ซูมเข้า</button>
+          </div>
+          <div class="pads">
+            <div>
+              <div class="cap">หมุนกล้อง</div>
+              <div class="grid3 pad">
+                <span></span><button type="button" data-cam="rotU">▲</button><span></span>
+                <button type="button" data-cam="rotL">⟲</button><button type="button" data-cam="reset" title="รีเซ็ต">⟳0</button><button type="button" data-cam="rotR">⟳</button>
+                <span></span><button type="button" data-cam="rotD">▼</button><span></span>
+              </div>
+            </div>
+            <div>
+              <div class="cap">เลื่อนกล้อง</div>
+              <div class="grid3 pad">
+                <button type="button" data-cam="up">⤒ ขึ้น</button><button type="button" data-cam="fwd">▲</button><button type="button" data-cam="down">⤓ ลง</button>
+                <button type="button" data-cam="left">◀</button><span></span><button type="button" data-cam="right">▶</button>
+                <span></span><button type="button" data-cam="back">▼</button><span></span>
+              </div>
+            </div>
+          </div>
+          <p class="hint">ลากเมาส์บนเวที = หมุน • เลื่อนสองนิ้วบนแทร็กแพด/ล้อเมาส์ = ซูม • คลิกขวาลาก = เลื่อน • ปุ่มกลางวงหมุน = รีเซ็ตเป็นเต็มเวที</p>
         </section>
 
         <section data-tab="test" hidden>
